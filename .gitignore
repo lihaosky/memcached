@@ -1,0 +1,10 @@
+*.[ao]
+*.gcov
+*.gcda
+*.gcno
+*.tcov
+*.swp
+.deps
+tags
+TAGS
+*~
