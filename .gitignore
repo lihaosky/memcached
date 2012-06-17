@@ -8,3 +8,13 @@
 tags
 TAGS
 *~
+ChangeLog
+Makefile
+config.log
+config.status
+doc/Makefile
+memcached
+memcached-debug
+sizes
+testapp
+timedrun
