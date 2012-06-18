@@ -153,6 +153,7 @@ enum conn_states {
     conn_swallow,    /**< swallowing unnecessary bytes w/o storing */
     conn_closing,    /**< closing this connection */
     conn_mwrite,     /**< writing out many items sequentially */
+	conn_wait_isis,  /**< Wait for Isis to reply */
     conn_max_state   /**< Max state value (used for assertion) */
 };
 
@@ -329,6 +330,7 @@ struct settings {
     int report_interval;    /* Time interval in secs between reports to controller */
 	
 	int isis_port;          /* Local isis service port number */
+	int use_isis;
 };
 
 extern struct stats stats;
@@ -424,7 +426,8 @@ struct conn {
      */
 
     void   *item;     /* for commands set/add/replace  */
-
+	int32_t exptime;  /* Expire time. For ISIS send */
+	
     /* data for the swallow state */
     int    sbytes;    /* how many bytes to swallow */
 
@@ -476,6 +479,9 @@ struct conn {
     int keylen;
     conn   *next;     /* Used for generating a list of conn structures */
     LIBEVENT_THREAD *thread; /* Pointer to the thread object serving this connection */
+	
+	/* Connection to local ISIS service */
+	struct bufferevent *bev;
 };
 
 

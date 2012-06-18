@@ -93,7 +93,10 @@ static void write_and_free(conn *c, char *buf, int bytes);
 static int ensure_iov_space(conn *c);
 static int add_iov(conn *c, const void *buf, int len);
 static int add_msghdr(conn *c);
-
+static void eventcb(struct bufferevent *bev, short events, void *prt);
+static void send_report(int fd, short events, void *ptr);
+static void isis_eventcb(struct bufferevent *bev, short events, void *ptr);
+static void isis_readcb(struct bufferevent *bev, void *ptr);
 static void conn_free(conn *c);
 
 /** exported globals **/
@@ -107,6 +110,8 @@ time_t process_started;     /* when the process was started */
 struct slab_rebalance slab_rebal;
 volatile int slab_rebalance_signal;
 
+static struct sockaddr_in isis_sin;
+
 /** file scope variables **/
 static conn *listen_conn = NULL;
 static struct event_base *main_base;
@@ -117,6 +122,34 @@ enum transmit_result {
     TRANSMIT_SOFT_ERROR, /** Can't write any more right now. */
     TRANSMIT_HARD_ERROR  /** Can't write (c->state is set to conn_closing) */
 };
+
+/* Callback for ISIS bufferevent event */
+static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
+	if (events & BEV_EVENT_CONNECTED) {
+		printf("Connected to ISIS!\n");
+	} else if (events & BEV_EVENT_ERROR) {
+		printf("Error connecting to local ISIS service!\n");
+	}
+}
+
+/* Callback for ISIS bufferevent read event */
+static void isis_readcb(struct bufferevent *bev, void *ptr) {
+	
+}
+
+/* callback for controller bufferevent */
+static void eventcb(struct bufferevent *bev, short events, void *ptr) {
+    if (events & BEV_EVENT_CONNECTED) {
+        printf("Connected to controller!\n");
+        /* setup timer driver event */
+        struct event *timer_ev; 
+        timer_ev = event_new(main_base, -1, EV_PERSIST|EV_TIMEOUT, send_report, NULL);
+        struct timeval tv = {settings.report_interval,0};
+        evtimer_add(timer_ev, &tv);
+    } else if (events & BEV_EVENT_ERROR) {
+        printf("An error occured in connecting controller!\n");
+    }
+}
 
 /* callback for timer event */
 static void send_report(int fd, short events, void *ptr) {
@@ -150,19 +183,6 @@ static void send_report(int fd, short events, void *ptr) {
     }
 }
 
-/* callback for controller bufferevent */
-static void eventcb(struct bufferevent *bev, short events, void *ptr) {
-    if (events & BEV_EVENT_CONNECTED) {
-        printf("Connected to controller!\n");
-        /* setup timer driver event */
-        struct event *timer_ev; 
-        timer_ev = event_new(main_base, -1, EV_PERSIST|EV_TIMEOUT, send_report, NULL);
-        struct timeval tv = {settings.report_interval,0};
-        evtimer_add(timer_ev, &tv);
-    } else if (events & BEV_EVENT_ERROR) {
-        printf("An error occured in connecting controller!\n");
-    }
-}
 
 static enum transmit_result transmit(conn *c);
 
@@ -276,6 +296,8 @@ static void settings_init(void) {
     settings.controller_ip = NULL;      /* no remote controller by default */
     settings.controller_port = 0;
     settings.report_interval = 1;       /* 1 sec by default */
+	settings.isis_port = -1;            /* port number -1 means not use local isis */
+	settings.use_isis = 0;
 }
 
 /*
@@ -499,7 +521,9 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->item = 0;
 
     c->noreply = false;
-
+	
+	c->bev = NULL;  /* Only create bufferevent when need to use ISIS service */
+	
     event_set(&c->event, sfd, event_flags, event_handler, (void *)c);
     event_base_set(base, &c->event);
     c->ev_flags = event_flags;
@@ -883,7 +907,11 @@ static void complete_nread_ascii(conn *c) {
     item *it = c->item;
     int comm = c->cmd;
     enum store_item_type ret;
-
+	char *command;
+	
+	if (it == NULL) {
+		printf("it is NULL\n");
+	}
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
     pthread_mutex_unlock(&c->thread->stats.mutex);
@@ -892,7 +920,10 @@ static void complete_nread_ascii(conn *c) {
         out_string(c, "CLIENT_ERROR bad data chunk");
     } else {
       ret = store_item(it, comm, c);
-
+	  
+	  if (ret == STORED) {
+		  printf("Stored!\n");
+	  }
 #ifdef ENABLE_DTRACE
       uint64_t cas = ITEM_get_cas(it);
       switch (c->cmd) {
@@ -922,26 +953,83 @@ static void complete_nread_ascii(conn *c) {
           break;
       }
 #endif
-
-      switch (ret) {
-      case STORED:
-          out_string(c, "STORED");
-          break;
-      case EXISTS:
-          out_string(c, "EXISTS");
-          break;
-      case NOT_FOUND:
-          out_string(c, "NOT_FOUND");
-          break;
-      case NOT_STORED:
-          out_string(c, "NOT_STORED");
-          break;
-      default:
-          out_string(c, "SERVER_ERROR Unhandled storage type.");
-      }
-
-    }
-
+		/* ISIS service is not used */
+		if (!settings.use_isis) {
+			printf("Flag is %d\n", it->it_flags);
+		  switch (ret) {
+		  case STORED:
+			  out_string(c, "STORED");
+			  break;
+		  case EXISTS:
+			  out_string(c, "EXISTS");
+			  break;
+		  case NOT_FOUND:
+			  out_string(c, "NOT_FOUND");
+			  break;
+		  case NOT_STORED:
+			  out_string(c, "NOT_STORED");
+			  break;
+		  default:
+			  out_string(c, "SERVER_ERROR Unhandled storage type.");
+		  }
+		} else {
+			if (c->cmd == NREAD_SET) {
+					command = "set";
+			}
+			if (c->cmd == NREAD_ADD) {
+					command = "add";
+			}
+			/* 
+			 * If it is stored successfully, we need to use ISIS to store them to other nodes
+			 */
+			if (ret == STORED) {
+				/* Not created, create it first */
+				if (c->bev == NULL) {
+					c->bev = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
+					bufferevent_setcb(c->bev, isis_readcb, NULL, isis_eventcb, c);
+					
+					if (bufferevent_socket_connect(c->bev, (struct sockaddr *)&isis_sin, sizeof(isis_sin)) < 0) {
+						/* 
+						 * Error connecting to ISIS, reply to client now
+						 */
+						fprintf(stderr, "Error connecting to local ISIS service\n");
+						bufferevent_free(c->bev);
+						c->bev = NULL;
+						out_string(c, "STORED");
+					} else {
+						/* Need to wait for other nodes to store the data */
+						conn_set_state(c, conn_wait_isis);
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes);
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s\r\n", ITEM_data(it));
+					}
+				} else {
+					/* Already created */
+					/* Need to wait for other nodes to store the data */
+					conn_set_state(c, conn_wait_isis);
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes);
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s\r\n", ITEM_data(it));
+				}
+			} else {
+				printf("Here?\n");
+				/*
+				 * Not successful, just reply to client
+				 */
+				switch (ret) {
+					case EXISTS:
+						out_string(c, "EXISTS");
+						break;
+					case NOT_FOUND:
+						out_string(c, "NOT_FOUND");
+						break;
+					case NOT_STORED:
+						out_string(c, "NOT_STORED");
+						break;
+					default:
+						out_string(c, "SERVER_ERROR Unhandled storage type.");
+				}
+			}
+		}
+	}
     item_remove(c->item);       /* release the c->item reference */
     c->item = 0;
 }
@@ -2966,7 +3054,8 @@ static void process_update_command(conn *c, token_t *tokens, const size_t ntoken
 
     /* Ubuntu 8.04 breaks when I pass exptime to safe_strtol */
     exptime = exptime_int;
-
+	c->exptime = exptime_int;
+	
     /* Negative exptimes can underflow and end up immortal. realtime() will
        immediately expire values that are greater than REALTIME_MAXDELTA, but less
        than process_started, so lets aim for that. */
@@ -3919,7 +4008,11 @@ static void drive_machine(conn *c) {
             }
 
             break;
-
+		
+		case conn_wait_isis:
+			conn_set_state(c, conn_waiting);
+			break;
+			
         case conn_new_cmd:
             /* Only process nreqs at a time to avoid starving other
                connections */
@@ -5097,6 +5190,7 @@ int main (int argc, char **argv) {
             break;
 		case 'q': /* Local Isis port */
 			settings.isis_port = atoi(optarg);
+			settings.use_isis = 1;
             break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
@@ -5344,6 +5438,18 @@ int main (int argc, char **argv) {
         }
     }
 
+	/* Use local ISIS service */
+	if (settings.use_isis) {
+		memset(&isis_sin, 0, sizeof(isis_sin));
+		isis_sin.sin_family = AF_INET;
+		isis_sin.sin_port = htons(settings.isis_port);
+		inet_aton("localhost", &isis_sin.sin_addr);
+		
+		if (settings.verbose) {
+			printf("Using localhost ISIS service. Port: %d\n", settings.isis_port);
+		}
+	}
+	
     /* enter the event loop */
     if (event_base_loop(main_base, 0) != 0) {
         retval = EXIT_FAILURE;
