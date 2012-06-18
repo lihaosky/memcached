@@ -18,3 +18,7 @@ memcached-debug
 sizes
 testapp
 timedrun
+Makefile.in
+aclocal.m4
+autom4te.cache/
+doc/

@@ -4869,7 +4869,7 @@ int main (int argc, char **argv) {
           "x:"  /* Remote controller IPv4 address */
           "y:"  /* Remote controller port */
           "z:"  /* Interval between reports to controller */
-		  "i:"  /* Local Isis port */
+		  "q:"  /* Local Isis port */
         ))) {
         switch (c) {
         case 'a':
@@ -5095,8 +5095,9 @@ int main (int argc, char **argv) {
             settings.report_interval = atoi(optarg);
             printf("Set reporting interval %d secs\n", settings.report_interval);
             break;
-		case 'i': /* Local Isis port */
+		case 'q': /* Local Isis port */
 			settings.isis_port = atoi(optarg);
+            break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
             return 1;
