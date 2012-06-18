@@ -327,6 +327,8 @@ struct settings {
     char *controller_ip;    /* IPv4 address of the remote controller */
     int controller_port;    /* Port of the remote controller */
     int report_interval;    /* Time interval in secs between reports to controller */
+	
+	int isis_port;          /* Local isis service port number */
 };
 
 extern struct stats stats;

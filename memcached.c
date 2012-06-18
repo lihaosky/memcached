@@ -3313,12 +3313,14 @@ static void process_command(conn *c, char *command) {
     c->msgcurr = 0;
     c->msgused = 0;
     c->iovused = 0;
+	
     if (add_msghdr(c) != 0) {
         out_string(c, "SERVER_ERROR out of memory preparing response");
         return;
     }
 
     ntokens = tokenize_command(command, tokens, MAX_TOKENS);
+	
     if (ntokens >= 3 &&
         ((strcmp(tokens[COMMAND_TOKEN].value, "get") == 0) ||
          (strcmp(tokens[COMMAND_TOKEN].value, "bget") == 0))) {
@@ -3331,7 +3333,7 @@ static void process_command(conn *c, char *command) {
                 (strcmp(tokens[COMMAND_TOKEN].value, "replace") == 0 && (comm = NREAD_REPLACE)) ||
                 (strcmp(tokens[COMMAND_TOKEN].value, "prepend") == 0 && (comm = NREAD_PREPEND)) ||
                 (strcmp(tokens[COMMAND_TOKEN].value, "append") == 0 && (comm = NREAD_APPEND)) )) {
-
+					
         process_update_command(c, tokens, ntokens, comm, false);
 
     } else if ((ntokens == 7 || ntokens == 8) && (strcmp(tokens[COMMAND_TOKEN].value, "cas") == 0 && (comm = NREAD_CAS))) {
@@ -3548,13 +3550,20 @@ static int try_read_command(conn *c) {
             c->rbytes -= sizeof(c->binary_header);
             c->rcurr += sizeof(c->binary_header);
         }
-    } else {
+    } else { 
+		/*
+		 * Client use ASCII protocol
+		 */
         char *el, *cont;
 
         if (c->rbytes == 0)
             return 0;
 
         el = memchr(c->rcurr, '\n', c->rbytes);
+		
+		/*
+		 * '\n' not found
+		 */
         if (!el) {
             if (c->rbytes > 1024) {
                 /*
@@ -4860,6 +4869,7 @@ int main (int argc, char **argv) {
           "x:"  /* Remote controller IPv4 address */
           "y:"  /* Remote controller port */
           "z:"  /* Interval between reports to controller */
+		  "i:"  /* Local Isis port */
         ))) {
         switch (c) {
         case 'a':
@@ -5085,6 +5095,8 @@ int main (int argc, char **argv) {
             settings.report_interval = atoi(optarg);
             printf("Set reporting interval %d secs\n", settings.report_interval);
             break;
+		case 'i': /* Local Isis port */
+			settings.isis_port = atoi(optarg);
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
             return 1;
