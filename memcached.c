@@ -909,9 +909,6 @@ static void complete_nread_ascii(conn *c) {
     enum store_item_type ret;
 	char *command;
 	
-	if (it == NULL) {
-		printf("it is NULL\n");
-	}
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
     pthread_mutex_unlock(&c->thread->stats.mutex);
@@ -921,9 +918,6 @@ static void complete_nread_ascii(conn *c) {
     } else {
       ret = store_item(it, comm, c);
 	  
-	  if (ret == STORED) {
-		  printf("Stored!\n");
-	  }
 #ifdef ENABLE_DTRACE
       uint64_t cas = ITEM_get_cas(it);
       switch (c->cmd) {
@@ -953,31 +947,32 @@ static void complete_nread_ascii(conn *c) {
           break;
       }
 #endif
-		/* ISIS service is not used */
-		if (!settings.use_isis) {
-			printf("Flag is %d\n", it->it_flags);
-		  switch (ret) {
-		  case STORED:
-			  out_string(c, "STORED");
-			  break;
-		  case EXISTS:
-			  out_string(c, "EXISTS");
-			  break;
-		  case NOT_FOUND:
-			  out_string(c, "NOT_FOUND");
-			  break;
-		  case NOT_STORED:
-			  out_string(c, "NOT_STORED");
-			  break;
-		  default:
-			  out_string(c, "SERVER_ERROR Unhandled storage type.");
-		  }
+
+		/* ISIS service is not used or the reply should go to ISIS server*/
+		if ((!settings.use_isis) || (it->it_flags == 4)) {
+			printf("Here?\n");
+			switch (ret) {
+				case STORED:
+					out_string(c, "STORED");
+					break;
+				case EXISTS:
+					out_string(c, "EXISTS");
+					break;
+				case NOT_FOUND:
+					out_string(c, "NOT_FOUND");
+					break;
+				case NOT_STORED:
+					out_string(c, "NOT_STORED");
+					break;
+				default:
+					out_string(c, "SERVER_ERROR Unhandled storage type.");
+			}
 		} else {
 			if (c->cmd == NREAD_SET) {
-					command = "set";
+				command = "set";
 			}
 			if (c->cmd == NREAD_ADD) {
-					command = "add";
+				command = "add";
 			}
 			/* 
 			 * If it is stored successfully, we need to use ISIS to store them to other nodes
@@ -999,18 +994,19 @@ static void complete_nread_ascii(conn *c) {
 					} else {
 						/* Need to wait for other nodes to store the data */
 						conn_set_state(c, conn_wait_isis);
-						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes);
-						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s\r\n", ITEM_data(it));
+						/* Note data end with \r\n */
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 					}
 				} else {
 					/* Already created */
 					/* Need to wait for other nodes to store the data */
 					conn_set_state(c, conn_wait_isis);
-					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes);
-					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s\r\n", ITEM_data(it));
+					/* Note data end with \r\n */
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 				}
 			} else {
-				printf("Here?\n");
 				/*
 				 * Not successful, just reply to client
 				 */
