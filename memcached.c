@@ -4182,8 +4182,6 @@ static void drive_machine(conn *c) {
                     break;
                 }
             }
-			
-			printf("Here in write!");
 
             /* fall through... */
 
