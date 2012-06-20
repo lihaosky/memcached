@@ -1020,7 +1020,7 @@ static void complete_nread_ascii(conn *c) {
 						/* Need to wait for other nodes to store the data */
 						conn_set_state(c, conn_wait_isis);
 						/* Note data end with \r\n */
-						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
 					}
@@ -1029,7 +1029,7 @@ static void complete_nread_ascii(conn *c) {
 					/* Need to wait for other nodes to store the data */
 					conn_set_state(c, conn_wait_isis);
 					/* Note data end with \r\n */
-					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
 				}
