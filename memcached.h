@@ -406,6 +406,9 @@ struct conn {
     int    rsize;   /** total allocated size of rbuf */
     int    rbytes;  /** how much data, starting from rcur, do we have unparsed */
 
+	char isis_rbuf[1024];   /** buffer to read reply from ISIS. No more than 1024 bytes */
+	char isis_rbytes;       /** how much data, starting from isis_rbuf, do we have read */
+	
     char   *wbuf;
     char   *wcurr;
     int    wsize;

@@ -98,6 +98,7 @@ static void send_report(int fd, short events, void *ptr);
 static void isis_eventcb(struct bufferevent *bev, short events, void *ptr);
 static void isis_readcb(struct bufferevent *bev, void *ptr);
 static void conn_free(conn *c);
+static void out_string(conn *c, const char *str);
 
 /** exported globals **/
 struct stats stats;
@@ -129,12 +130,31 @@ static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
 		printf("Connected to ISIS!\n");
 	} else if (events & BEV_EVENT_ERROR) {
 		printf("Error connecting to local ISIS service!\n");
+		bufferevent_free(bev);
 	}
 }
 
 /* Callback for ISIS bufferevent read event */
 static void isis_readcb(struct bufferevent *bev, void *ptr) {
+	printf("readcb called!");
+	conn *c = (conn *)ptr;
+	char *el;
+	int n = 0;
+	struct evbuffer *input = bufferevent_get_input(bev);
 	
+	while ((n = evbuffer_remove(input, c->isis_rbuf + c->isis_rbytes, 1024 - c->isis_rbytes)) > 0) {
+		fwrite(c->isis_rbuf + c->isis_rbytes, 1, n, stdout);
+		c->isis_rbytes += n;
+	}
+	
+	/** Check if receive all the reply */
+	el = memchr(c->isis_rbuf, '\n', c->isis_rbytes);
+	if (el) {
+		if (!strncmp(c->isis_rbuf, "OK.", 3)) {
+			out_string(c, "STORED");
+			drive_machine(c);
+		}
+	}
 }
 
 /* callback for controller bufferevent */
@@ -515,7 +535,8 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->iovused = 0;
     c->msgcurr = 0;
     c->msgused = 0;
-
+	c->isis_rbytes = 0;
+	
     c->write_and_go = init_state;
     c->write_and_free = 0;
     c->item = 0;
@@ -617,6 +638,9 @@ static void conn_close(conn *c) {
 
     MEMCACHED_CONN_RELEASE(c->sfd);
     close(c->sfd);
+	if (c->bev) {
+		bufferevent_free(c->bev);
+	}
     pthread_mutex_lock(&conn_lock);
     allow_new_conns = true;
     pthread_mutex_unlock(&conn_lock);
@@ -982,6 +1006,7 @@ static void complete_nread_ascii(conn *c) {
 				if (c->bev == NULL) {
 					c->bev = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
 					bufferevent_setcb(c->bev, isis_readcb, NULL, isis_eventcb, c);
+					bufferevent_enable(c->bev, EV_READ|EV_WRITE);
 					
 					if (bufferevent_socket_connect(c->bev, (struct sockaddr *)&isis_sin, sizeof(isis_sin)) < 0) {
 						/* 
@@ -997,6 +1022,7 @@ static void complete_nread_ascii(conn *c) {
 						/* Note data end with \r\n */
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
 					}
 				} else {
 					/* Already created */
@@ -1005,6 +1031,7 @@ static void complete_nread_ascii(conn *c) {
 					/* Note data end with \r\n */
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 3 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
 				}
 			} else {
 				/*
@@ -4006,7 +4033,7 @@ static void drive_machine(conn *c) {
             break;
 		
 		case conn_wait_isis:
-			conn_set_state(c, conn_waiting);
+			stop = true;
 			break;
 			
         case conn_new_cmd:
@@ -4155,6 +4182,8 @@ static void drive_machine(conn *c) {
                     break;
                 }
             }
+			
+			printf("Here in write!");
 
             /* fall through... */
 
