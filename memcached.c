@@ -932,6 +932,9 @@ static void complete_nread_ascii(conn *c) {
     int comm = c->cmd;
     enum store_item_type ret;
 	char *command = NULL;
+	char s[5];
+	char *el;
+	int cpy_size = 0;
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -972,9 +975,13 @@ static void complete_nread_ascii(conn *c) {
       }
 #endif
 
+		el = memchr(ITEM_suffix(it) + 1, ' ', it->nsuffix - 1);
+		cpy_size = el - ITEM_suffix(it) + 1;
+		strncpy(s, ITEM_suffix(it), cpy_size);
+		s[cpy_size - 1] = '\0';
+		
 		/* ISIS service is not used or the reply should go to ISIS server*/
-		if ((!settings.use_isis) || (it->it_flags == 4)) {
-			printf("Here?\n");
+		if ((!settings.use_isis) || (atoi(s) == 4)) {
 			switch (ret) {
 				case STORED:
 					out_string(c, "STORED");
