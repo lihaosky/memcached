@@ -47,6 +47,16 @@ void item_stats_reset(void) {
     pthread_mutex_unlock(&cache_lock);
 }
 
+void get_flag(item *it, char *s) {
+	char *el;
+	int cpy_size = 0;
+	
+	el = memchr(ITEM_suffix(it) + 1, ' ', it->nsuffix - 1);
+	cpy_size = el - ITEM_suffix(it) + 1;
+	strncpy(s, ITEM_suffix(it), cpy_size);
+	s[cpy_size - 1] = '\0';
+}
+
 
 /* Get the next CAS id for a new item. */
 uint64_t get_cas_id(void) {

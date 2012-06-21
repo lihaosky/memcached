@@ -192,6 +192,7 @@ enum network_transport {
 #define NREAD_APPEND 4
 #define NREAD_PREPEND 5
 #define NREAD_CAS 6
+#define NREAD_GET 7
 
 enum store_item_type {
     NOT_STORED=0, STORED, EXISTS, NOT_FOUND
@@ -406,8 +407,9 @@ struct conn {
     int    rsize;   /** total allocated size of rbuf */
     int    rbytes;  /** how much data, starting from rcur, do we have unparsed */
 
-	char isis_rbuf[1024];   /** buffer to read reply from ISIS. No more than 1024 bytes */
+	char isis_rbuf[1024 * 1024 + 256];   /** buffer to read reply from ISIS. No more than 1024 bytes */
 	char isis_rbytes;       /** how much data, starting from isis_rbuf, do we have read */
+	int isis_buf_size;
 	
     char   *wbuf;
     char   *wcurr;

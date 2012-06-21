@@ -136,23 +136,41 @@ static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
 
 /* Callback for ISIS bufferevent read event */
 static void isis_readcb(struct bufferevent *bev, void *ptr) {
-	printf("readcb called!");
 	conn *c = (conn *)ptr;
 	char *el;
 	int n = 0;
 	struct evbuffer *input = bufferevent_get_input(bev);
 	
-	while ((n = evbuffer_remove(input, c->isis_rbuf + c->isis_rbytes, 1024 - c->isis_rbytes)) > 0) {
-		fwrite(c->isis_rbuf + c->isis_rbytes, 1, n, stdout);
+	while ((n = evbuffer_remove(input, c->isis_rbuf + c->isis_rbytes, c->isis_buf_size - c->isis_rbytes)) > 0) {
 		c->isis_rbytes += n;
 	}
 	
-	/** Check if receive all the reply */
-	el = memchr(c->isis_rbuf, '\n', c->isis_rbytes);
-	if (el) {
-		if (!strncmp(c->isis_rbuf, "OK.", 3)) {
-			out_string(c, "STORED");
+	/* Set or add command */
+	if (c->cmd == NREAD_SET || c->cmd == NREAD_ADD) {
+		/** Check if receive all the reply */
+		el = memchr(c->isis_rbuf, '\n', c->isis_rbytes);
+		if (el) {
+			if (!strncmp(c->isis_rbuf, "OK.", 3)) {
+				out_string(c, "STORED");
+				drive_machine(c);
+			} else {
+				out_string(c, "NOT_STORED");
+				drive_machine(c);
+			}
+			memset(c->isis_rbuf, 0, c->isis_buf_size);
+			c->isis_rbytes = 0;
+		}
+	}
+	
+	/* Get command */
+	if (c->cmd == NREAD_GET) {
+		el = strstr(c->isis_rbuf, "END\r\n");
+		if (el) {
+			*(el + 3) = '\0';
+			out_string(c, c->isis_rbuf);
 			drive_machine(c);
+			memset(c->isis_rbuf, 0, c->isis_buf_size);
+			c->isis_rbytes = 0;
 		}
 	}
 }
@@ -289,8 +307,8 @@ static void stats_reset(void) {
 static void settings_init(void) {
     settings.use_cas = true;
     settings.access = 0700;
-    settings.port = 11211;
-    settings.udpport = 11211;
+    settings.port = 9999;
+    settings.udpport = 9999;
     /* By default this string should be NULL for getaddrinfo() */
     settings.inter = NULL;
     settings.maxbytes = 64 * 1024 * 1024; /* default is 64MB */
@@ -536,7 +554,7 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->msgcurr = 0;
     c->msgused = 0;
 	c->isis_rbytes = 0;
-	
+	c->isis_buf_size = 1024 * 1024 + 256;
     c->write_and_go = init_state;
     c->write_and_free = 0;
     c->item = 0;
@@ -932,9 +950,7 @@ static void complete_nread_ascii(conn *c) {
     int comm = c->cmd;
     enum store_item_type ret;
 	char *command = NULL;
-	char s[5];
-	char *el;
-	int cpy_size = 0;
+	char s[6];    /* The flag MAY be never larger than 5 digits */
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -975,10 +991,7 @@ static void complete_nread_ascii(conn *c) {
       }
 #endif
 
-		el = memchr(ITEM_suffix(it) + 1, ' ', it->nsuffix - 1);
-		cpy_size = el - ITEM_suffix(it) + 1;
-		strncpy(s, ITEM_suffix(it), cpy_size);
-		s[cpy_size - 1] = '\0';
+		get_flag(it, s);
 		
 		/* ISIS service is not used or the reply should go to ISIS server*/
 		if ((!settings.use_isis) || (atoi(s) == 4)) {
@@ -1027,6 +1040,7 @@ static void complete_nread_ascii(conn *c) {
 						/* Need to wait for other nodes to store the data */
 						conn_set_state(c, conn_wait_isis);
 						/* Note data end with \r\n */
+						evbuffer_add_printf(bufferevent_get_output(c->bev), "insert\r\n");
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 						evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
@@ -1036,6 +1050,7 @@ static void complete_nread_ascii(conn *c) {
 					/* Need to wait for other nodes to store the data */
 					conn_set_state(c, conn_wait_isis);
 					/* Note data end with \r\n */
+					evbuffer_add_printf(bufferevent_get_output(c->bev), "insert\r\n");
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "%s", ITEM_data(it));
 					evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
@@ -2886,14 +2901,20 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
     item *it;
     token_t *key_token = &tokens[KEY_TOKEN];
     char *suffix;
+	int is_exist = 0;
+	char key_str[256];
+	
     assert(c != NULL);
-
+	c->cmd = NREAD_GET;
+	
     do {
         while(key_token->length != 0) {
 
             key = key_token->value;
             nkey = key_token->length;
-
+			strncpy(key_str, key, key_token->length);
+			key_str[key_token->length] = '\0';
+			
             if(nkey > KEY_MAX_LENGTH) {
                 out_string(c, "CLIENT_ERROR bad command line format");
                 return;
@@ -2959,6 +2980,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
                           item_remove(it);
                           break;
                       }
+					is_exist = 1;
                 }
                 else
                 {
@@ -2971,6 +2993,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
                           item_remove(it);
                           break;
                       }
+					  is_exist = 1;
                 }
 
                 /* record get hit for later report to the controller */
@@ -3041,15 +3064,67 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
         reliable to add END\r\n to the buffer, because it might not end
         in \r\n. So we send SERVER_ERROR instead.
     */
-    if (key_token->value != NULL || add_iov(c, "END\r\n", 5) != 0
-        || (IS_UDP(c->transport) && build_udp_headers(c) != 0)) {
-        out_string(c, "SERVER_ERROR out of memory writing get response");
-    }
-    else {
-        conn_set_state(c, conn_mwrite);
-        c->msgcurr = 0;
-    }
-
+	/* If we use ISIS */
+	if (!settings.use_isis) {
+		if (key_token->value != NULL || add_iov(c, "END\r\n", 5) != 0
+			|| (IS_UDP(c->transport) && build_udp_headers(c) != 0)) {
+			out_string(c, "SERVER_ERROR out of memory writing get response");
+		}
+		else {
+			conn_set_state(c, conn_mwrite);
+			c->msgcurr = 0;
+		}
+		return;
+	}
+	
+	/* We don't use ISIS */
+	if (is_exist) {
+		if (key_token->value != NULL || add_iov(c, "END\r\n", 5) != 0
+			|| (IS_UDP(c->transport) && build_udp_headers(c) != 0)) {
+			out_string(c, "SERVER_ERROR out of memory writing get response");
+		}
+		else {
+			conn_set_state(c, conn_mwrite);
+			c->msgcurr = 0;
+		}
+	}
+	/*
+	 * If we can't find the item here
+	 * we will find it in other server and send the result
+	 */
+	else {
+		/* Not created, create it first */
+		if (c->bev == NULL) {
+			c->bev = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
+			bufferevent_setcb(c->bev, isis_readcb, NULL, isis_eventcb, c);
+			bufferevent_enable(c->bev, EV_READ|EV_WRITE);
+			
+			if (bufferevent_socket_connect(c->bev, (struct sockaddr *)&isis_sin, sizeof(isis_sin)) < 0) {
+				/* 
+				 * Error connecting to ISIS, reply to client now
+				 */
+				fprintf(stderr, "Error connecting to local ISIS service\n");
+				bufferevent_free(c->bev);
+				c->bev = NULL;
+				out_string(c, "END\r\n");
+			} else {
+				/* Need to wait for other nodes to store the data */
+				conn_set_state(c, conn_wait_isis);
+				/* Note data end with \r\n */
+				evbuffer_add_printf(bufferevent_get_output(c->bev), "get\r\n");
+				evbuffer_add_printf(bufferevent_get_output(c->bev), "get %s\r\n", key_str);
+				evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
+			}
+		} else {
+			/* Already created */
+			/* Need to wait for other nodes to store the data */
+			conn_set_state(c, conn_wait_isis);
+			/* Note data end with \r\n */
+			evbuffer_add_printf(bufferevent_get_output(c->bev), "get\r\n");
+			evbuffer_add_printf(bufferevent_get_output(c->bev), "get %s\r\n", key_str);
+			evbuffer_add_printf(bufferevent_get_output(c->bev), "\r\n");
+		}
+	}
     return;
 }
 
