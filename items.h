@@ -27,3 +27,4 @@ extern pthread_mutex_t cache_lock;
 void item_stats_evictions(uint64_t *evicted);
 
 void get_flag(item *it, char *s);
+
