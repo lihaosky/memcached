@@ -1088,7 +1088,8 @@ static void complete_nread_ascii(conn *c) {
 				command = "add";
 			}
 			cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s\r\n", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
-			printf("%s\n%d\n", cmd, cmd_size);
+			printf("%s%d", cmd, cmd_size);
+			printf("%d\n", strlen(cmd));
 		}
 	}
     item_remove(c->item);       /* release the c->item reference */
