@@ -24,6 +24,7 @@
 #include "sasl_defs.h"
 
 #include "uthash/uthash.h"
+#include "monoisis.h"
 
 /** Maximum length of a key. */
 #define KEY_MAX_LENGTH 250
@@ -332,6 +333,7 @@ struct settings {
 	
 	int isis_port;          /* Local isis service port number */
 	int use_isis;
+	bool use_local_isis;
 };
 
 extern struct stats stats;

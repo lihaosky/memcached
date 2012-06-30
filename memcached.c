@@ -336,6 +336,7 @@ static void settings_init(void) {
     settings.report_interval = 1;       /* 1 sec by default */
 	settings.isis_port = -1;            /* port number -1 means not use local isis */
 	settings.use_isis = 0;
+	settings.use_local_isis = false;
 }
 
 /*
@@ -5006,6 +5007,11 @@ int main (int argc, char **argv) {
     bool tcp_specified = false;
     bool udp_specified = false;
 
+	/* Local ISIS parameters */
+	int node_num = -1;
+	int shard_size = -1;
+	int my_rank = -1;
+	
     char *subopts;
     char *subopts_value;
     enum {
@@ -5068,6 +5074,9 @@ int main (int argc, char **argv) {
           "y:"  /* Remote controller port */
           "z:"  /* Interval between reports to controller */
 		  "q:"  /* Local Isis port */
+		  "N:"  /* Node number */
+		  "H:"  /* Shard size */
+		  "R:"  /* My rank */
         ))) {
         switch (c) {
         case 'a':
@@ -5297,12 +5306,26 @@ int main (int argc, char **argv) {
 			settings.isis_port = atoi(optarg);
 			settings.use_isis = 1;
             break;
+		case 'N':
+			node_num = atoi(optarg);
+			break;
+		case 'H':
+			shard_size = atoi(optarg);
+			break;
+		case 'R':
+			my_rank = atoi(optarg);
+			break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
             return 1;
         }
     }
 
+	/* Use local ISIS library, not service */
+	if (node_num != -1 && shard_size != -1 && my_rank != -1) {
+		settings.use_local_isis = true;
+	}
+	
     /*
      * Use one workerthread to serve each UDP port if the user specified
      * multiple ports
@@ -5555,6 +5578,10 @@ int main (int argc, char **argv) {
 		}
 	}
 	
+	if (settings.use_local_isis) {
+		isis_init(node_num, shard_size, my_rank);
+		isis_start();
+	}
     /* enter the event loop */
     if (event_base_loop(main_base, 0) != 0) {
         retval = EXIT_FAILURE;
