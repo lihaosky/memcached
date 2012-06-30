@@ -1018,7 +1018,6 @@ static void complete_nread_ascii(conn *c) {
 		} 
 		/* Use TCP connection ISIS service */
 		else if (settings.use_isis) {
-			printf("Shouldn't be here!");
 			if (c->cmd == NREAD_SET) {
 				command = "set";
 			}
@@ -1091,10 +1090,8 @@ static void complete_nread_ascii(conn *c) {
 					command = "add";
 				}
 				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
-				printf("%s%d", cmd, cmd_size);
-				printf("%d\n", strlen(cmd));
 				val = isis_send(cmd);
-				
+
 				out_string(c, "STORED");
 			} else {
 				/*
