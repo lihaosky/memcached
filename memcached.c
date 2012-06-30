@@ -952,6 +952,8 @@ static void complete_nread_ascii(conn *c) {
     enum store_item_type ret;
 	char *command = NULL;
 	char s[6];    /* The flag MAY be never larger than 5 digits */
+	char cmd[1024 + 256];
+	int cmd_size = 0;
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -1079,7 +1081,14 @@ static void complete_nread_ascii(conn *c) {
 		} 
 		/* Use library call to C# from C */
 		else if (settings.use_local_isis) {
-			
+			if (c->cmd == NREAD_SET) {
+				command = "set";
+			}
+			if (c->cmd == NREAD_ADD) {
+				command = "add";
+			}
+			cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s\r\n", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
+			printf("%s\n%d\n", cmd, cmd_size);
 		}
 	}
     item_remove(c->item);       /* release the c->item reference */
@@ -3156,8 +3165,6 @@ static void process_update_command(conn *c, token_t *tokens, const size_t ntoken
 
     key = tokens[KEY_TOKEN].value;
     nkey = tokens[KEY_TOKEN].length;
-	
-	printf("%d\n", nkey);
 
     if (! (safe_strtoul(tokens[2].value, (uint32_t *)&flags)
            && safe_strtol(tokens[3].value, &exptime_int)
