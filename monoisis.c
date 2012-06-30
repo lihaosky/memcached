@@ -90,6 +90,9 @@ int isis_send(char *cmd) {
 	void *args[1];
 	MonoObject *result;
 	
+	/* Must be called if a new thread is using mono
+	 * Indeed this will be called by another thread
+	 */
 	mono_thread_attach(domain);
 	
 	str = mono_string_new(domain, cmd);
