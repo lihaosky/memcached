@@ -4762,6 +4762,9 @@ static void usage(void) {
            "-i            print memcached and libevent license\n"
            "-P <file>     save PID in <file>, only used with -d option\n"
            "-f <factor>   chunk size growth factor (default: 1.25)\n"
+		   "-N            node number\n"
+		   "-H            shard size\n"
+		   "-K            my rank\n"
            "-n <bytes>    minimum space allocated for key+value+flags (default: 48)\n");
     printf("-L            Try to use large memory pages (if available). Increasing\n"
            "              the memory page size could reduce the number of TLB misses\n"
