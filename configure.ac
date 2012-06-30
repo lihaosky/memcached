@@ -265,7 +265,7 @@ AC_CACHE_CHECK([for libevent directory], ac_cv_libevent_dir, [
 ])
   fi
 ])
-LIBS="-levent $LIBS"
+LIBS="-levent $LIBS `pkg-config --libs mono-2`"
 if test $ac_cv_libevent_dir != "(system)"; then
   if test -d "$ac_cv_libevent_dir/lib" ; then
     LDFLAGS="-L$ac_cv_libevent_dir/lib $LDFLAGS"
@@ -541,7 +541,7 @@ then
 elif test "$GCC" = "yes"
 then
   GCC_VERSION=`$CC -dumpversion`
-  CFLAGS="$CFLAGS -Wall -Werror -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls"
+  CFLAGS="$CFLAGS -Wall -pedantic -Wmissing-prototypes -Wmissing-declarations -Wredundant-decls `pkg-config --cflags mono-2`"
   case $GCC_VERSION in
     4.4.*)
     CFLAGS="$CFLAGS -fno-strict-aliasing"

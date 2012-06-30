@@ -5008,9 +5008,9 @@ int main (int argc, char **argv) {
     bool udp_specified = false;
 
 	/* Local ISIS parameters */
-	int node_num = -1;
-	int shard_size = -1;
-	int my_rank = -1;
+	int nnum = -1;          /* Node number */
+	int ssize = -1;         /* Shard size */
+	int mrank = -1;         /* My rank */
 	
     char *subopts;
     char *subopts_value;
@@ -5076,7 +5076,7 @@ int main (int argc, char **argv) {
 		  "q:"  /* Local Isis port */
 		  "N:"  /* Node number */
 		  "H:"  /* Shard size */
-		  "R:"  /* My rank */
+		  "K:"  /* My rank */
         ))) {
         switch (c) {
         case 'a':
@@ -5307,13 +5307,13 @@ int main (int argc, char **argv) {
 			settings.use_isis = 1;
             break;
 		case 'N':
-			node_num = atoi(optarg);
+			nnum = atoi(optarg);
 			break;
 		case 'H':
-			shard_size = atoi(optarg);
+			ssize = atoi(optarg);
 			break;
-		case 'R':
-			my_rank = atoi(optarg);
+		case 'K':
+			mrank = atoi(optarg);
 			break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
@@ -5322,7 +5322,7 @@ int main (int argc, char **argv) {
     }
 
 	/* Use local ISIS library, not service */
-	if (node_num != -1 && shard_size != -1 && my_rank != -1) {
+	if (nnum != -1 && ssize != -1 && mrank != -1) {
 		settings.use_local_isis = true;
 	}
 	
@@ -5579,7 +5579,7 @@ int main (int argc, char **argv) {
 	}
 	
 	if (settings.use_local_isis) {
-		isis_init(node_num, shard_size, my_rank);
+		isis_init(nnum, ssize, mrank);
 		isis_start();
 	}
     /* enter the event loop */
