@@ -1081,15 +1081,35 @@ static void complete_nread_ascii(conn *c) {
 		} 
 		/* Use library call to C# from C */
 		else if (settings.use_local_isis) {
-			if (c->cmd == NREAD_SET) {
-				command = "set";
+			if (ret == STORED) {
+				if (c->cmd == NREAD_SET) {
+					command = "set";
+				}
+				if (c->cmd == NREAD_ADD) {
+					command = "add";
+				}
+				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
+				printf("%s%d", cmd, cmd_size);
+				printf("%d\n", strlen(cmd));
+				isis_send(cmd);
+			} else {
+				/*
+				 * Not successful, just reply to client
+				 */
+				switch (ret) {
+					case EXISTS:
+						out_string(c, "EXISTS");
+						break;
+					case NOT_FOUND:
+						out_string(c, "NOT_FOUND");
+						break;
+					case NOT_STORED:
+						out_string(c, "NOT_STORED");
+						break;
+					default:
+						out_string(c, "SERVER_ERROR Unhandled storage type.");
+				}
 			}
-			if (c->cmd == NREAD_ADD) {
-				command = "add";
-			}
-			cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s\r\n", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
-			printf("%s%d", cmd, cmd_size);
-			printf("%d\n", strlen(cmd));
 		}
 	}
     item_remove(c->item);       /* release the c->item reference */

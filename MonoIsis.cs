@@ -20,7 +20,7 @@ namespace IsisService {
 	  	public static int shardSize;
 	  	public static int myRank;
 	  	public static Isis.Group[] shardGroup;
-	  	public static int timeout = 15000;
+	  	public static Isis.Timeout timeout;
 	  	public static int INSERT = 0;
 	  	public static int GET = 1;
 	  	public static bool isVerbose = true;
@@ -31,7 +31,9 @@ namespace IsisService {
 	  		nodeNum = nNum;
 	  		shardSize = sSize;
 	  		myRank = mRank;
-
+			
+			timeout = new Isis.Timeout(15000, Isis.Timeout.TO_FAILURE);
+			
 	  		IsisSystem.Start();
 	  		if (isVerbose) {
 	  			Console.WriteLine("Isis system started!");
@@ -107,8 +109,16 @@ namespace IsisService {
 	  		IsisSystem.WaitForever();
 	  	}
 	  	
-	  	public static void commandSend(string command, int rank) {
-	  		shardGroup[0].Send(INSERT, command, rank);
+	  	public static int commandSend(string command) {
+	  		List<string> replyList = new List<string>();
+			int	nr = shardGroup[0].Query(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
+			
+			foreach (string s in replyList) {
+				if (s == "Yes") {
+					return 0;
+				}
+			}
+			return 1;
 	  	}
 	  	
 	  	public static int isStarted() {

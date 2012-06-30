@@ -83,6 +83,20 @@ void isis_start(void) {
 	pthread_create(&thread, NULL, isis_start_fun, NULL);
 }
 
+
+/* Send command */
+int isis_send(char *cmd) {
+	MonoString *str;
+	void *args[1];
+	MonoObject *result;
+	
+	str = mono_string_new(domain, cmd);
+	args[0] = str;
+	result = mono_runtime_invoke(send_method, NULL, args, NULL);
+	
+	return *(int*)mono_object_unbox(result);
+}
+
 /*
 void safe_send(const char *command, int rank) {
 }
