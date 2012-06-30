@@ -995,7 +995,7 @@ static void complete_nread_ascii(conn *c) {
 		get_flag(it, s);
 		
 		/* ISIS service is not used or the reply should go to ISIS server*/
-		if ((!settings.use_isis) || (atoi(s) == 4)) {
+		if ((!settings.use_isis && !settings.use_local_isis) || (atoi(s) == 4)) {
 			switch (ret) {
 				case STORED:
 					out_string(c, "STORED");
@@ -1012,7 +1012,9 @@ static void complete_nread_ascii(conn *c) {
 				default:
 					out_string(c, "SERVER_ERROR Unhandled storage type.");
 			}
-		} else {
+		} 
+		/* Use TCP connection ISIS service */
+		else if (settings.use_isis) {
 			if (c->cmd == NREAD_SET) {
 				command = "set";
 			}
@@ -1074,6 +1076,10 @@ static void complete_nread_ascii(conn *c) {
 						out_string(c, "SERVER_ERROR Unhandled storage type.");
 				}
 			}
+		} 
+		/* Use library call to C# from C */
+		else if (settings.use_local_isis) {
+			
 		}
 	}
     item_remove(c->item);       /* release the c->item reference */
@@ -3150,6 +3156,8 @@ static void process_update_command(conn *c, token_t *tokens, const size_t ntoken
 
     key = tokens[KEY_TOKEN].value;
     nkey = tokens[KEY_TOKEN].length;
+	
+	printf("%d\n", nkey);
 
     if (! (safe_strtoul(tokens[2].value, (uint32_t *)&flags)
            && safe_strtol(tokens[3].value, &exptime_int)
