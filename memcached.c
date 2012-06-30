@@ -954,6 +954,7 @@ static void complete_nread_ascii(conn *c) {
 	char s[6];    /* The flag MAY be never larger than 5 digits */
 	char cmd[1024 + 256];
 	int cmd_size = 0;
+	int val;
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -1017,6 +1018,7 @@ static void complete_nread_ascii(conn *c) {
 		} 
 		/* Use TCP connection ISIS service */
 		else if (settings.use_isis) {
+			printf("Shouldn't be here!");
 			if (c->cmd == NREAD_SET) {
 				command = "set";
 			}
@@ -1091,7 +1093,9 @@ static void complete_nread_ascii(conn *c) {
 				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
 				printf("%s%d", cmd, cmd_size);
 				printf("%d\n", strlen(cmd));
-				isis_send(cmd);
+				val = isis_send(cmd);
+				
+				out_string(c, "STORED");
 			} else {
 				/*
 				 * Not successful, just reply to client
