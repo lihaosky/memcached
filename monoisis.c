@@ -90,6 +90,8 @@ int isis_send(char *cmd) {
 	void *args[1];
 	MonoObject *result;
 	
+	mono_thread_attach(domain);
+	
 	str = mono_string_new(domain, cmd);
 	args[0] = str;
 	result = mono_runtime_invoke(send_method, NULL, args, NULL);

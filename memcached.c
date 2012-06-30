@@ -1093,7 +1093,7 @@ static void complete_nread_ascii(conn *c) {
 				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
 				printf("%s%d", cmd, cmd_size);
 				printf("%d\n", strlen(cmd));
-				/*val = isis_send(cmd);*/
+				val = isis_send(cmd);
 				
 				out_string(c, "STORED");
 			} else {
