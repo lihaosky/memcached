@@ -5051,6 +5051,7 @@ int main (int argc, char **argv) {
 	int nnum = -1;          /* Node number */
 	int ssize = -1;         /* Shard size */
 	int mrank = -1;         /* My rank */
+	bool is_verbose = false; /* Verbose? */
 	
     char *subopts;
     char *subopts_value;
@@ -5155,6 +5156,7 @@ int main (int argc, char **argv) {
             break;
         case 'v':
             settings.verbose++;
+			is_verbose = true;
             break;
         case 'l':
             if (settings.inter != NULL) {
@@ -5619,7 +5621,7 @@ int main (int argc, char **argv) {
 	}
 	
 	if (settings.use_local_isis) {
-		isis_init(nnum, ssize, mrank);
+		isis_init(nnum, ssize, mrank, is_verbose);
 		isis_start();
 	}
     /* enter the event loop */
