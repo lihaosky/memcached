@@ -37,11 +37,11 @@ namespace IsisService {
 	  			Console.WriteLine("Isis system started!");
 	  		}
 	  		
-            shardSize = 1;
+//            shardSize = 1;
 	  		shardGroup = new Isis.Group[shardSize];
 	  		
 	  		int groupNum = myRank;
-            groupNum /= sSize;
+//            groupNum /= sSize;
 
 	  		for (int i = 0; i < shardSize; i++) {
 	  			shardGroup[i] = new Isis.Group("group"+groupNum);
