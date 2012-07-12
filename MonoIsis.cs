@@ -9,23 +9,21 @@ using System.Collections;
 using System.Threading;
 using Isis;
 
-//Works but quite lousy design!!!
 namespace IsisService {
 	delegate void insert(string command, int rank);  //Callback for insert
 	delegate void query(string command, int rank);   //Callback for get
 	
-	//Main class
 	class IsisServer {
-	  	public static int nodeNum;
-	  	public static int shardSize;
-	  	public static int myRank;
-	  	public static Isis.Group[] shardGroup;
-	  	public static Isis.Timeout timeout;
-	  	public static int INSERT = 0;
-	  	public static int GET = 1;
-	  	public static bool isVerbose = true;
-	  	public static int is_Started = 0;
-	  	public static int memPortNum = 9999;
+	  	public static int nodeNum;                   //Node number
+	  	public static int shardSize;                 //Shard size
+	  	public static int myRank;                    //My rank
+	  	public static Isis.Group[] shardGroup;       //Group
+	  	public static Isis.Timeout timeout;          //Time out
+	  	public static int INSERT = 0;                //Insert code
+	  	public static int GET = 1;                   //Get code
+	  	public static bool isVerbose = true;         //Verbosely output?
+	  	public static int is_Started = 0;            //Is ISIS started
+	  	public static int memPortNum = 9999;         //memcached port number
 	  	
 	  	public static void createGroup(int nNum, int sSize, int mRank) {
 	  		nodeNum = nNum;
@@ -126,6 +124,10 @@ namespace IsisService {
 	  	
 	  	public static int isStarted() {
 	  		return is_Started;
+	  	}
+	  	
+	  	public static void setVerbose(bool isVerbose) {
+	  		IsisServer.isVerbose = isVerbose;
 	  	}
 	  	
 	  	//Talk to local memcached

@@ -20,12 +20,13 @@ static MonoDomain *domain;
 static MonoAssembly *assembly;
 static MonoImage *image;
 static MonoClass *klass;
-static MonoMethod *start_method;  /* createGroup method */
-static MonoMethod *send_method;    /* commandSend method */
+static MonoMethod *start_method;       /* createGroup method */
+static MonoMethod *send_method;        /* commandSend method */
 static MonoMethod *is_started_method;  /* isStarted method */
-
-void isis_init(int nnum, int ssize, int mrank) {
+static MonoMethod *set_verbose_method; /* setVerbose method */
+void isis_init(int nnum, int ssize, int mrank, bool is_verbose) {
 	MonoMethod *m;
+	void *args[1];
 	void *iter;
 	
 	node_num = nnum;
@@ -55,7 +56,13 @@ void isis_init(int nnum, int ssize, int mrank) {
 		if (!strcmp(mono_method_get_name(m), "isStarted")) {
 			is_started_method = m;
 		}
+		if (!strcmp(mono_method_get_name(m), "setVerbose")) {
+			set_verbose_method = m;
+		}
 	}
+	
+	args[0] = &is_verbose;
+	mono_runtime_invoke(set_verbose_method, NULL, args, NULL);
 }
 
 /* Thread function */
