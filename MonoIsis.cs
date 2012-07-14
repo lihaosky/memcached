@@ -24,18 +24,12 @@ namespace IsisService {
 	  	public static bool isVerbose = true;         //Verbosely output?
 	  	public static int is_Started = 0;            //Is ISIS started
 	  	public static int memPortNum = 9999;         //memcached port number
-	  	public static TcpClient client;              //Client talking to local memcached
-	  	public static NetworkStream ns;              //Network stream
-	
+	  	
 	  	public static void createGroup(int nNum, int sSize, int mRank) {
 	  		nodeNum = nNum;
 	  		shardSize = sSize;
 	  		myRank = mRank;
 			
-			client = new TcpClient();
-			client.Connect("localhost", memPortNum);
-	  		ns = client.GetStream();
-	  		
 			timeout = new Isis.Timeout(15000, Isis.Timeout.TO_FAILURE);
 			
 	  		IsisSystem.Start();
@@ -138,10 +132,13 @@ namespace IsisService {
 	  	
 	  	//Talk to local memcached
 	  	public static string talkToMem(string command, int commandType) {
+	  		TcpClient client = new TcpClient();
 	  		string line = "";
 	  		string reply = "";
 	  		
 	  		try {
+	  			client.Connect("localhost", memPortNum);
+	  			NetworkStream ns = client.GetStream();
 	  			byte[] sendBytes = Encoding.ASCII.GetBytes(command);
 	  			StreamReader reader = new StreamReader(client.GetStream(), System.Text.Encoding.ASCII);
 	  			
@@ -153,6 +150,7 @@ namespace IsisService {
 	  			if (commandType == IsisServer.INSERT) {
   					line = reader.ReadLine();
   					reply = line;
+  					client.Close();
 	  			} else if (commandType == IsisServer.GET) {
   					while ((line = reader.ReadLine()) != null) {
   						reply += line;
@@ -162,6 +160,7 @@ namespace IsisService {
   							break;
   						}
   					}
+  					client.Close();
 	  			}
 	  		} catch (Exception e) {
 	  			Console.WriteLine("Exception in talking to memcached!");
