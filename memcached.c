@@ -1089,8 +1089,8 @@ static void complete_nread_ascii(conn *c) {
 				if (c->cmd == NREAD_ADD) {
 					command = "add";
 				}
-				//cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
-				//val = isis_send(cmd);
+				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
+				val = isis_send(cmd);
 
 				out_string(c, "STORED");
 			} else {
@@ -3102,7 +3102,7 @@ static inline void process_get_command(conn *c, token_t *tokens, size_t ntokens,
         reliable to add END\r\n to the buffer, because it might not end
         in \r\n. So we send SERVER_ERROR instead.
     */
-	/* If we use ISIS */
+	/* If we don't use ISIS */
 	if (!settings.use_isis) {
 		if (key_token->value != NULL || add_iov(c, "END\r\n", 5) != 0
 			|| (IS_UDP(c->transport) && build_udp_headers(c) != 0)) {
