@@ -1083,6 +1083,7 @@ static void complete_nread_ascii(conn *c) {
 		/* Use library call to C# from C */
 		else if (settings.use_local_isis) {
 			if (ret == STORED) {
+				out_string(c, "STORED");
 				if (c->cmd == NREAD_SET) {
 					command = "set";
 				}
@@ -1092,7 +1093,7 @@ static void complete_nread_ascii(conn *c) {
 				cmd_size = sprintf(cmd, "%s %s %d %d %d\r\n%s", command, ITEM_key(it), 4, c->exptime, it->nbytes - 2, ITEM_data(it));
 				val = isis_send(cmd);
 
-				out_string(c, "STORED");
+				
 			} else {
 				/*
 				 * Not successful, just reply to client
