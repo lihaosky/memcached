@@ -17,7 +17,7 @@ namespace IsisService {
 	  	public static int nodeNum;                   //Node number
 	  	public static int shardSize;                 //Shard size
 	  	public static int myRank;                    //My rank
-	  	public static Isis.Group[] shardGroup;       //Group
+	  	public static Isis.Group[][] shardGroup;       //Group
 	  	public static Isis.Timeout timeout;          //Time out
 	  	public static int INSERT = 0;                //Insert code
 	  	public static int GET = 1;                   //Get code
@@ -38,13 +38,19 @@ namespace IsisService {
 	  		}
 	  		
 //            shardSize = 1;
-	  		shardGroup = new Isis.Group[shardSize];
+	  		shardGroup = new Isis.Group[shardSize][];
+	  		
+	  		for (int i = 0; i < shardGroup.Length; i++) {
+	  			shardGroup[i] = new Isis.Group[20];
+	  		}
 	  		
 	  		int groupNum = myRank;
 //            groupNum /= sSize;
 
 	  		for (int i = 0; i < shardSize; i++) {
-	  			shardGroup[i] = new Isis.Group("group"+groupNum);
+	  			for (int j = 0; j < 20; j++) {
+	  				shardGroup[i][j] = new Isis.Group("group" + groupNum + j);
+	  			}
 	  			
 	  			groupNum--;
 	  			if (groupNum < 0) {
@@ -53,57 +59,62 @@ namespace IsisService {
 	  		}
 	  		
 	  		for (int i = 0; i < shardSize; i++) {
+	  			for (int j = 0; j < 20; j++) {
 	  			int local = i;
+	  			int localj = j;
 	  			
 	  			//Insert handler
-	  			shardGroup[i].Handlers[INSERT] += (insert)delegate(string command, int rank) {
+	  			shardGroup[i][j].Handlers[INSERT] += (insert)delegate(string command, int rank) {
 	  				if (isVerbose) {
 	  					Console.WriteLine("Got a command {0}", command);
 	  					Console.WriteLine("Rank is {0}", rank);
 	  				}
 	  				
-	  				if (shardGroup[local].GetView().GetMyRank() == rank) {
+	  				if (shardGroup[local][localj].GetView().GetMyRank() == rank) {
 	  					if (isVerbose) {
 	  						Console.WriteLine("Got a message from myself!");
 	  					}
-	  					shardGroup[local].Reply("Yes");
+	  					shardGroup[local][localj].Reply("Yes");
 	  				} else {
 	  					string ret = talkToMem(command, INSERT);
 	  					if (ret == "STORED") {
-	  						shardGroup[local].Reply("Yes");
+	  						shardGroup[local][localj].Reply("Yes");
 	  					} else {
-	  						shardGroup[local].Reply("No");
+	  						shardGroup[local][localj].Reply("No");
 	  					}
 	  				}
 	  			};
 	  			
 	  			//Get handler
-	  			shardGroup[i].Handlers[GET] += (query)delegate(string command, int rank) {
+	  			shardGroup[i][j].Handlers[GET] += (query)delegate(string command, int rank) {
 	  				if (isVerbose) {
 	  					Console.WriteLine("Got a command {0}", command);
 	  				}
-  					if (shardGroup[local].GetView().GetMyRank() == rank) {
+  					if (shardGroup[local][localj].GetView().GetMyRank() == rank) {
   						if (isVerbose) {
   							Console.WriteLine("Got a message from myself!");
   						}
-  						shardGroup[local].Reply("END\r\n"); //Definitely not presented in local memcached!
+  						shardGroup[local][localj].Reply("END\r\n"); //Definitely not presented in local memcached!
   					} else {
   						string ret = talkToMem(command, GET);
-  						shardGroup[local].Reply(ret);
+  						shardGroup[local][localj].Reply(ret);
   					}
 	  			};
 	  			
 	  			//View handler
-	  			shardGroup[i].ViewHandlers += (Isis.ViewHandler)delegate(View v) {
+	  			shardGroup[i][j].ViewHandlers += (Isis.ViewHandler)delegate(View v) {
 	  				if (isVerbose) {
 	  					Console.WriteLine("Got a new view {0}" + v);
-	  					Console.WriteLine("Group {0} has {1} members", local, shardGroup[local].GetView().GetSize());
+	  					Console.WriteLine("Group {0} has {1} members", local, shardGroup[local][localj].GetView().GetSize());
 	  				}
 	  			};
+	  			}
 	  		}
 	  		
 	  		for (int i = 0; i < shardSize; i++) {
-	  			shardGroup[i].Join();
+	  			for (int j = 0; j < 20; j++) {
+	  			shardGroup[i][j].Join();
+	  			}
 	  		}
 	  		
 	  		is_Started = 1;
@@ -111,8 +122,10 @@ namespace IsisService {
 	  	}
 	  	
 	  	public static int commandSend(string command) {
+	  		Random rand = new Random();
+	  		int j = rand.Next(20);
 	  		List<string> replyList = new List<string>();
-			int	nr = shardGroup[0].RawQuery(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
+			int	nr = shardGroup[0][j].RawQuery(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0][j].GetView().GetMyRank(), new EOLMarker(), replyList);
 			
 			foreach (string s in replyList) {
 				if (s == "Yes") {
