@@ -112,7 +112,7 @@ namespace IsisService {
 	  	
 	  	public static int commandSend(string command) {
 	  		List<string> replyList = new List<string>();
-			int	nr = shardGroup[0].Query(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
+			int	nr = shardGroup[0].RawQuery(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
 			
 			foreach (string s in replyList) {
 				if (s == "Yes") {
