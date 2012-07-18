@@ -45,7 +45,7 @@ namespace IsisService {
 //            groupNum /= sSize;
 
 	  		for (int i = 0; i < shardSize; i++) {
-	  			
+	  			shardGroup[i] = new Isis.Group("group" + groupNum);
 	  			groupNum--;
 	  			if (groupNum < 0) {
 	  				groupNum += nodeNum;
