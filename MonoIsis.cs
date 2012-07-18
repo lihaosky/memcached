@@ -119,7 +119,7 @@ namespace IsisService {
 					return 0;
 				}
 			}*/
-			shardGroup[0].Send(INSERT, command, shardGroup[0].GetView().GetMyRank());
+			shardGroup[0].RawSend(INSERT, command, shardGroup[0].GetView().GetMyRank());
 			return 0;
 			return 1;
 	  	}
