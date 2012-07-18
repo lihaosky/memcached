@@ -66,13 +66,13 @@ namespace IsisService {
 	  					if (isVerbose) {
 	  						Console.WriteLine("Got a message from myself!");
 	  					}
-	  					shardGroup[local].Reply("Yes");
+	  					//shardGroup[local].Reply("Yes");
 	  				} else {
 	  					string ret = talkToMem(command, INSERT);
 	  					if (ret == "STORED") {
-	  						shardGroup[local].Reply("Yes");
+	  						//shardGroup[local].Reply("Yes");
 	  					} else {
-	  						shardGroup[local].Reply("No");
+	  						//shardGroup[local].Reply("No");
 	  					}
 	  				}
 	  			};
@@ -112,13 +112,15 @@ namespace IsisService {
 	  	
 	  	public static int commandSend(string command) {
 	  		List<string> replyList = new List<string>();
-			int	nr = shardGroup[0].RawQuery(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
+			//int	nr = shardGroup[0].RawQuery(Isis.Group.ALL, timeout, INSERT, command, shardGroup[0].GetView().GetMyRank(), new EOLMarker(), replyList);
 			
-			foreach (string s in replyList) {
+			/*foreach (string s in replyList) {
 				if (s == "Yes") {
 					return 0;
 				}
-			}
+			}*/
+			shardGroup[0].Send(INSERT, command, shardGroup[0].GetView().GetMyRank());
+			return 0;
 			return 1;
 	  	}
 	  	
