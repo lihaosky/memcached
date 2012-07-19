@@ -97,6 +97,7 @@ static void eventcb(struct bufferevent *bev, short events, void *prt);
 static void send_report(int fd, short events, void *ptr);
 static void isis_eventcb(struct bufferevent *bev, short events, void *ptr);
 static void isis_readcb(struct bufferevent *bev, void *ptr);
+static void member_readcb(struct bufferevent *bev, void *ptr);
 static void conn_free(conn *c);
 static void out_string(conn *c, const char *str);
 
@@ -165,6 +166,57 @@ static void isis_readcb(struct bufferevent *bev, void *ptr) {
 			}
 			memset(c->isis_rbuf, 0, c->isis_buf_size);
 			c->isis_rbytes = 0;
+		}
+	}
+	
+	/* Get command */
+	if (c->cmd == NREAD_GET) {
+		el = strstr(c->isis_rbuf, "END\r\n");
+		if (el) {
+			*(el + 3) = '\0';
+			out_string(c, c->isis_rbuf);
+			drive_machine(c);
+			memset(c->isis_rbuf, 0, c->isis_buf_size);
+			c->isis_rbytes = 0;
+		}
+	}
+}
+
+static void member_readcb(struct bufferevent *bev, void *ptr) {
+	conn *c = (conn *)ptr;
+	char *el;
+	int n = 0;
+	struct evbuffer *input = bufferevent_get_input(bev);
+	
+	while ((n = evbuffer_remove(input, c->isis_rbuf + c->isis_rbytes, c->isis_buf_size - c->isis_rbytes)) > 0) {
+		c->isis_rbytes += n;
+	}
+	
+	/* Set or add command */
+	if (c->cmd == NREAD_SET || c->cmd == NREAD_ADD) {
+		/** Check if receive all the reply */
+		el = memchr(c->isis_rbuf, '\n', c->isis_rbytes);
+		if (el) {
+			pthread_mutex_lock(&c->lock);
+			c->reply_num++;
+			pthread_mutex_unlock(&c->lock);
+			
+			if (c->reply_num == shard_size - 1) {
+				out_string(c, "STORED");
+				drive_machine(c);
+			}
+			/*
+			if (!strncmp(c->isis_rbuf, "STORED", 6)) {
+				out_string(c, "STORED");
+				drive_machine(c);
+			} else {
+				out_string(c, "NOT_STORED");
+				drive_machine(c);
+			}
+			*/
+			memset(c->isis_rbuf, 0, c->isis_buf_size);
+			c->isis_rbytes = 0;
+			c->reply_num = 0;
 		}
 	}
 	
@@ -471,7 +523,7 @@ conn *conn_new(const int sfd, enum conn_states init_state,
                 const int read_buffer_size, enum network_transport transport,
                 struct event_base *base) {
     conn *c = conn_from_freelist();
-
+	
     if (NULL == c) {
         if (!(c = (conn *)calloc(1, sizeof(conn)))) {
             fprintf(stderr, "calloc()\n");
@@ -565,10 +617,11 @@ conn *conn_new(const int sfd, enum conn_states init_state,
     c->write_and_go = init_state;
     c->write_and_free = 0;
     c->item = 0;
-
+	c->reply_num = 0;
     c->noreply = false;
 	
 	c->bev = NULL;  /* Only create bufferevent when need to use ISIS service */
+	memset(c->member_bev, NULL, sizeof(c->member_bev));
 	
     event_set(&c->event, sfd, event_flags, event_handler, (void *)c);
     event_base_set(base, &c->event);
@@ -653,6 +706,7 @@ void conn_free(conn *c) {
 }
 
 static void conn_close(conn *c) {
+	int i;
     assert(c != NULL);
 
     /* delete the event, the socket and the conn */
@@ -666,6 +720,13 @@ static void conn_close(conn *c) {
 	if (c->bev) {
 		bufferevent_free(c->bev);
 	}
+	
+	for (i = 0; i < shard_size; i++) {
+		if (c->member_bev[i]) {
+			bufferevent_free(c->member_bev[i]);
+		}
+	}
+	
     pthread_mutex_lock(&conn_lock);
     allow_new_conns = true;
     pthread_mutex_unlock(&conn_lock);
@@ -961,6 +1022,7 @@ static void complete_nread_ascii(conn *c) {
 	char cmd[1024 + 256];
 	int cmd_size = 0;
 	int val;
+	int i;
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -1118,8 +1180,66 @@ static void complete_nread_ascii(conn *c) {
 						out_string(c, "SERVER_ERROR Unhandled storage type.");
 				}
 			}
+		} 
+		/* Use TCP connection to do replication */
+		else if (settings.use_tcp) {
+			if (ret = STORED) {
+				
+				for (i = 0; i < shard_size; i++) {
+					/* Not created, create it first */
+					if (c->member_bev[i] == NULL) {
+						c->member_bev[i] = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
+						bufferevent_setcb(c->member_bev[i], isis_readcb, NULL, isis_eventcb, c);
+						bufferevent_enable(c->member_bev[i], EV_READ|EV_WRITE);
+						
+						if (bufferevent_socket_connect(c->member_bev[i], (struct sockaddr *)&member_sin[i], sizeof(member_sin[i])) < 0) {
+							/* 
+							 * Error connecting to ISIS, reply to client now
+							 */
+							fprintf(stderr, "Error connecting to other memcached\n");
+							bufferevent_free(c->member_bev[i]);
+							c->member_bev[i] = NULL;
+							out_string(c, "STORED");
+						} else {
+							/* Need to wait for other nodes to store the data */
+							conn_set_state(c, conn_wait_isis);
+							/* Note data end with \r\n */
+							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
+							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
+							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
+						}
+					} else {
+						/* Already created */
+						/* Need to wait for other nodes to store the data */
+						conn_set_state(c, conn_wait_isis);
+						/* Note data end with \r\n */
+						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
+						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
+						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
+						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
+					}
+				}
+			} else {
+				/*
+				 * Not successful, just reply to client
+				 */
+				switch (ret) {
+					case EXISTS:
+						out_string(c, "EXISTS");
+						break;
+					case NOT_FOUND:
+						out_string(c, "NOT_FOUND");
+						break;
+					case NOT_STORED:
+						out_string(c, "NOT_STORED");
+						break;
+					default:
+						out_string(c, "SERVER_ERROR Unhandled storage type.");
+				}
+			}
 		}
-	}
+	} 
     item_remove(c->item);       /* release the c->item reference */
     c->item = 0;
 }
@@ -5050,8 +5170,12 @@ static void loadmember(void) {
 		strcpy(hostnames[i], tmp_hostnames[j]);
 		j = (++j) % node_num;
 		printf("In shard %s\n", hostnames[i]);
+		
+		memset(&member_sin[i], 0, sizeof(member_sin[i]));
+		member_sin[i].sin_family = AF_INET;
+		member_sin[i].sin_port = htons(9999);
+		inet_aton(hostnames[i], &member_sin[i].sin_addr);
 	}
-	
 }
 
 int main (int argc, char **argv) {

@@ -490,6 +490,11 @@ struct conn {
 	
 	/* Connection to local ISIS service */
 	struct bufferevent *bev;
+	
+	struct bufferevent *member_bev[40];
+	int reply_num;
+	
+	pthread_mutex_t lock;
 };
 
 
