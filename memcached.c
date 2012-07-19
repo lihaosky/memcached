@@ -721,7 +721,7 @@ static void conn_close(conn *c) {
 		bufferevent_free(c->bev);
 	}
 	
-	for (i = 0; i < shard_size; i++) {
+	for (i = 0; i < shard_size - 1; i++) {
 		if (c->member_bev[i]) {
 			bufferevent_free(c->member_bev[i]);
 		}
@@ -1185,7 +1185,7 @@ static void complete_nread_ascii(conn *c) {
 		else if (settings.use_tcp) {
 			if (ret = STORED) {
 				
-				for (i = 0; i < shard_size; i++) {
+				for (i = 0; i < shard_size - 1; i++) {
 					/* Not created, create it first */
 					if (c->member_bev[i] == NULL) {
 						c->member_bev[i] = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
@@ -5171,7 +5171,7 @@ static void loadmember(void) {
 	j = (my_rank + 1) % node_num;
 
 	
-	for (i = 0; i < shard_size; i++) {
+	for (i = 0; i < shard_size - 1; i++) {
 		strcpy(hostnames[i], tmp_hostnames[j]);
 		j = (++j) % node_num;
 		printf("In shard %s\n", hostnames[i]);
