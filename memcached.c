@@ -1066,7 +1066,7 @@ static void complete_nread_ascii(conn *c) {
 		get_flag(it, s);
 		
 		/* ISIS service is not used or the reply should go to ISIS server*/
-		if ((!settings.use_isis && !settings.use_local_isis) || (atoi(s) == 4)) {
+		if ((!settings.use_isis && !settings.use_local_isis && !settings.use_tcp) || (atoi(s) == 4)) {
 			switch (ret) {
 				case STORED:
 					out_string(c, "STORED");
