@@ -206,6 +206,7 @@ static void member_readcb(struct bufferevent *bev, void *ptr) {
 			if (c->reply_num == shard_size - 1) {
 				out_string(c, "STORED");
 				drive_machine(c);
+				c->reply_num = 0;
 			}
 			/*
 			if (!strncmp(c->isis_rbuf, "STORED", 6)) {
@@ -216,7 +217,6 @@ static void member_readcb(struct bufferevent *bev, void *ptr) {
 				drive_machine(c);
 			}
 			*/
-			c->reply_num = 0;
 		}
 	}
 }
