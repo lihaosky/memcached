@@ -5392,6 +5392,7 @@ int main (int argc, char **argv) {
 			break;
 		case 'T':
 			settings.use_tcp = true;
+			break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
             return 1;
