@@ -1184,7 +1184,7 @@ static void complete_nread_ascii(conn *c) {
 		/* Use TCP connection to do replication */
 		else if (settings.use_tcp) {
 			if (ret = STORED) {
-				
+				printf("Here to do rep\n");
 				for (i = 0; i < shard_size - 1; i++) {
 					/* Not created, create it first */
 					if (c->member_bev[i] == NULL) {
