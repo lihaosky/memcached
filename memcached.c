@@ -1204,20 +1204,20 @@ static void complete_nread_ascii(conn *c) {
 							/* Need to wait for other nodes to store the data */
 							conn_set_state(c, conn_wait_isis);
 							/* Note data end with \r\n */
-							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
+							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
-							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
+							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
 						}
 					} else {
 						/* Already created */
 						/* Need to wait for other nodes to store the data */
 						conn_set_state(c, conn_wait_isis);
 						/* Note data end with \r\n */
-						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
+						//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
 						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
-						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
+						//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
 					}
 				}
 			} else {
@@ -5317,7 +5317,7 @@ int main (int argc, char **argv) {
             settings.verbose++;
 			is_verbose = true;
             break;
-		case 'Z':
+		case 'e':
 			settings.use_tcp = true;
 			break;
         case 'l':
