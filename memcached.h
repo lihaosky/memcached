@@ -334,6 +334,7 @@ struct settings {
 	int isis_port;          /* Local isis service port number */
 	int use_isis;
 	bool use_local_isis;
+	bool use_tcp;        
 };
 
 extern struct stats stats;

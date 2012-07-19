@@ -112,6 +112,12 @@ struct slab_rebalance slab_rebal;
 volatile int slab_rebalance_signal;
 
 static struct sockaddr_in isis_sin;
+static struct sockaddr_in member_sin[40];
+static char hostnames[40][20];
+
+static int node_num;
+static int shard_size;
+static int my_rank;
 
 /** file scope variables **/
 static conn *listen_conn = NULL;
@@ -5026,6 +5032,28 @@ static bool sanitycheck(void) {
     return true;
 }
 
+static void loadmember(void) {
+	FILE *fp;
+	int i = 0;
+	int j;
+	char tmp_hostnames[40][20];
+	
+	fp = fpen("NodeList", "r");
+	
+	for (i = 0; i < node_num; i++) {
+		fscanf(fp, "%s ", tmp_hostnames[i]);
+		printf("Found node %s\n", tmp_hostnames[i]);
+	}
+	
+	j = (my_rank + 1) % node_num;
+	for (i = 0; i < shard_size; i++) {
+		strcpy(hostnames[i], tmp_hostnames[j]);
+		j = (++j) % node_num;
+		printf("In shard %s\n", hostnames[i]);
+	}
+	
+}
+
 int main (int argc, char **argv) {
     int c;
     bool lock_memory = false;
@@ -5119,6 +5147,7 @@ int main (int argc, char **argv) {
 		  "N:"  /* Node number */
 		  "H:"  /* Shard size */
 		  "K:"  /* My rank */
+		  "T:"  /* Use TCP to do replication */
         ))) {
         switch (c) {
         case 'a':
@@ -5351,13 +5380,18 @@ int main (int argc, char **argv) {
             break;
 		case 'N':
 			nnum = atoi(optarg);
+			node_num = nnum;
 			break;
 		case 'H':
 			ssize = atoi(optarg);
+			shard_size = ssize;
 			break;
 		case 'K':
 			mrank = atoi(optarg);
+			my_rank = mrank;
 			break;
+		case 'T':
+			settings.use_tcp = true;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
             return 1;
@@ -5365,7 +5399,7 @@ int main (int argc, char **argv) {
     }
 
 	/* Use local ISIS library, not service */
-	if (nnum != -1 && ssize != -1 && mrank != -1) {
+	if (nnum != -1 && ssize != -1 && mrank != -1 && !settings.use_tcp) {
 		settings.use_local_isis = true;
 	}
 	
@@ -5619,6 +5653,10 @@ int main (int argc, char **argv) {
 		if (settings.verbose) {
 			printf("Using localhost ISIS service. Port: %d\n", settings.isis_port);
 		}
+	}
+	
+	if (settings.use_tcp) {
+		loadmember();
 	}
 	
 	if (settings.use_local_isis) {
