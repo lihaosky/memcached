@@ -1179,7 +1179,6 @@ static void complete_nread_ascii(conn *c) {
 			}
 			
 			if (ret = STORED) {
-				printf("Here to do rep\n");
 				for (i = 0; i < shard_size - 1; i++) {
 					/* Not created, create it first */
 					if (c->member_bev[i] == NULL) {
