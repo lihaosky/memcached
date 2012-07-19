@@ -5152,6 +5152,7 @@ static void loadmember(void) {
 	int i = 0;
 	int j;
 	char tmp_hostnames[40][20];
+	struct hostent *hostinfo;
 	
 	fp = fopen("NodeList", "r");
 	
@@ -5174,7 +5175,10 @@ static void loadmember(void) {
 		memset(&member_sin[i], 0, sizeof(member_sin[i]));
 		member_sin[i].sin_family = AF_INET;
 		member_sin[i].sin_port = htons(9999);
-		inet_aton(hostnames[i], &member_sin[i].sin_addr);
+		hostinfo = gethostbyname(hostnames[i]);
+		memcpy(&member_sin[i].sin_addr, hostinfo->h_addr_list[0], hostinfo->h_length);
+		
+		/*inet_aton(hostnames[i], &member_sin[i].sin_addr);*/
 	}
 }
 
