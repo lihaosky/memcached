@@ -5038,7 +5038,7 @@ static void loadmember(void) {
 	int j;
 	char tmp_hostnames[40][20];
 	
-	fp = fpen("NodeList", "r");
+	fp = fopen("NodeList", "r");
 	
 	for (i = 0; i < node_num; i++) {
 		fscanf(fp, "%s ", tmp_hostnames[i]);
