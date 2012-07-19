@@ -1183,6 +1183,13 @@ static void complete_nread_ascii(conn *c) {
 		} 
 		/* Use TCP connection to do replication */
 		else if (settings.use_tcp) {
+			if (c->cmd == NREAD_SET) {
+				command = "set";
+			}
+			if (c->cmd == NREAD_ADD) {
+				command = "add";
+			}
+			
 			if (ret = STORED) {
 				printf("Here to do rep\n");
 				for (i = 0; i < shard_size - 1; i++) {
@@ -5173,7 +5180,7 @@ static void loadmember(void) {
 	
 	for (i = 0; i < shard_size - 1; i++) {
 		strcpy(hostnames[i], tmp_hostnames[j]);
-		j = (++j) % node_num;
+		j = (j++) % node_num;
 		printf("In shard %s\n", hostnames[i]);
 		
 		memset(&member_sin[i], 0, sizeof(member_sin[i]));
