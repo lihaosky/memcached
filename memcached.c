@@ -187,15 +187,17 @@ static void member_readcb(struct bufferevent *bev, void *ptr) {
 	char *el;
 	int n = 0;
 	struct evbuffer *input = bufferevent_get_input(bev);
+	char buf[40];
+	int rbytes = 0;
 	
-	while ((n = evbuffer_remove(input, c->isis_rbuf + c->isis_rbytes, c->isis_buf_size - c->isis_rbytes)) > 0) {
-		c->isis_rbytes += n;
+	while ((n = evbuffer_remove(input, buf + rbytes, sizeof(buf) - rbytes)) > 0) {
+		rbytes += n;
 	}
 	
 	/* Set or add command */
 	if (c->cmd == NREAD_SET || c->cmd == NREAD_ADD) {
 		/** Check if receive all the reply */
-		el = memchr(c->isis_rbuf, '\n', c->isis_rbytes);
+		el = memchr(buf, '\n', rbytes);
 		if (el) {
 			pthread_mutex_lock(&c->lock);
 			c->reply_num++;
@@ -214,21 +216,7 @@ static void member_readcb(struct bufferevent *bev, void *ptr) {
 				drive_machine(c);
 			}
 			*/
-			memset(c->isis_rbuf, 0, c->isis_buf_size);
-			c->isis_rbytes = 0;
 			c->reply_num = 0;
-		}
-	}
-	
-	/* Get command */
-	if (c->cmd == NREAD_GET) {
-		el = strstr(c->isis_rbuf, "END\r\n");
-		if (el) {
-			*(el + 3) = '\0';
-			out_string(c, c->isis_rbuf);
-			drive_machine(c);
-			memset(c->isis_rbuf, 0, c->isis_buf_size);
-			c->isis_rbytes = 0;
 		}
 	}
 }
@@ -1196,7 +1184,7 @@ static void complete_nread_ascii(conn *c) {
 					/* Not created, create it first */
 					if (c->member_bev[i] == NULL) {
 						c->member_bev[i] = bufferevent_socket_new(main_base, -1, BEV_OPT_CLOSE_ON_FREE);
-						bufferevent_setcb(c->member_bev[i], isis_readcb, NULL, isis_eventcb, c);
+						bufferevent_setcb(c->member_bev[i], member_readcb, NULL, isis_eventcb, c);
 						bufferevent_enable(c->member_bev[i], EV_READ|EV_WRITE);
 						
 						if (bufferevent_socket_connect(c->member_bev[i], (struct sockaddr *)&member_sin[i], sizeof(member_sin[i])) < 0) {
@@ -5180,7 +5168,7 @@ static void loadmember(void) {
 	
 	for (i = 0; i < shard_size - 1; i++) {
 		strcpy(hostnames[i], tmp_hostnames[j]);
-		j = (j++) % node_num;
+		j = (++j) % node_num;
 		printf("In shard %s\n", hostnames[i]);
 		
 		memset(&member_sin[i], 0, sizeof(member_sin[i]));
