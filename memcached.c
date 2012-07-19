@@ -5166,6 +5166,10 @@ static void loadmember(void) {
 	}
 	
 	j = (my_rank + 1) % node_num;
+	printf("Node number is %d\n", node_num);
+	printf("My rank is %d\n", my_rank);
+	printf("j is %d\n", j);
+	
 	for (i = 0; i < shard_size; i++) {
 		strcpy(hostnames[i], tmp_hostnames[j]);
 		j = (++j) % node_num;
