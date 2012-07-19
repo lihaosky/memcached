@@ -5276,7 +5276,7 @@ int main (int argc, char **argv) {
 		  "N:"  /* Node number */
 		  "H:"  /* Shard size */
 		  "K:"  /* My rank */
-		  "T:"  /* Use TCP to do replication */
+		  "Z:"  /* Use TCP to do replication */
         ))) {
         switch (c) {
         case 'a':
@@ -5317,7 +5317,7 @@ int main (int argc, char **argv) {
             settings.verbose++;
 			is_verbose = true;
             break;
-		case 'T':
+		case 'Z':
 			settings.use_tcp = true;
 			break;
         case 'l':
