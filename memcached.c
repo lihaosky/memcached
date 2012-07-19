@@ -5188,6 +5188,9 @@ int main (int argc, char **argv) {
             settings.verbose++;
 			is_verbose = true;
             break;
+		case 'T':
+			settings.use_tcp = true;
+			break;
         case 'l':
             if (settings.inter != NULL) {
                 size_t len = strlen(settings.inter) + strlen(optarg) + 2;
@@ -5389,9 +5392,6 @@ int main (int argc, char **argv) {
 		case 'K':
 			mrank = atoi(optarg);
 			my_rank = mrank;
-			break;
-		case 'T':
-			settings.use_tcp = true;
 			break;
         default:
             fprintf(stderr, "Illegal argument \"%c\"\n", c);
