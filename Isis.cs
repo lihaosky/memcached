@@ -1,4 +1,4 @@
-// Isis2 System, V1.1.$Rev: 847 $, Developed by Kenneth P. Birman, (c) 2010, 2011. all rights reserved.
+// Isis2 System, V1.1.$Rev: 911 $, Developed by Kenneth P. Birman, (c) 2010, 2011. all rights reserved.
 //       This code is subject to copyright and other intellectual property restrictions and
 //       may be used only under license from Dr. Birman or his designated agents.
 //
@@ -59,15 +59,15 @@
 //       Isis has its own locking infrastructure for coarse-grained long-lived locks; use these for that sort of thing
 // ********************************************************************************************
 
-//#define MONO_MODE                       // Set if compiling on Mono
-//#define MONODROID_MODE                    // VN - Set if compiling on Mono for Android
+//#define ___ANDROID__                     // In principle, should be automatically set, needed if compiling on Mono for Android
+//#define __MONOCS__                       // Similarly, should be automatically set, needed when compiling for C# on Linux via Mono
 
 // The DEFINEs that follow are useful in debugging but not for production runs.  Some can be VERY slow
-// #define TRACKLOCKINFO                   // If defined, tracks lock information, warns about apparent deadlocks or priority inversions
-// #define TRACKLOCKINGORDER               // If both are defined, watches for potential lock ordering issues (e.g. usually any single thread locks A before B, but now B was locked, then A)
-//#define EXTRACTCALLSTACKS               // A risky and expensive .NET mechanism that can extract the call stack but sometimes seems to trigger deadlocks or other exceptions
-// #define NONLOCALSTACKTRACES             // If defined, Isis will sometimes print stack traces of seemingly stuck threads but for this uses a deprecated API and sometimes malfunctions (which is why they deprecated it!)
-
+//#define TRACKLOCKINFO                   // If defined, tracks lock information, warns about apparent deadlocks or priority inversions
+//#define TRACKLOCKINGORDER               // If both are defined, watches for potential lock ordering issues (e.g. usually any single thread locks A before B, but now B was locked, then A)
+//#define EXTRACTCALLSTACKS                  // A risky and expensive .NET mechanism that can extract the call stack but sometimes seems to trigger deadlocks or other exceptions
+//#define NONLOCALSTACKTRACES             // If defined, Isis will sometimes print stack traces of seemingly stuck threads but for this uses a deprecated API and sometimes malfunctions (which is why they deprecated it!)
+//#define WARN_ON_LONG_DELAYS             // Useful if locking problems are suspected in message handlers
 
 using System;
 using System.IO;
@@ -100,7 +100,8 @@ namespace Isis
         public IsisException(string s)
             : base(s)
         {
-            IsisSystem.WriteAckInfo(); IsisSystem.Shutdown(s);
+            IsisSystem.WriteAckInfo();
+            IsisSystem.Shutdown(s);
         }
     }
     /// <summary>
@@ -205,8 +206,6 @@ namespace Isis
         public GroupNotFound(string s) : base(s) { IsisSystem.Shutdown(s); }
     }
 
-    [Serializable]
-    class BBDisposed : Exception { public BBDisposed(string s) : base(s) { } }
     /// <summary>
     /// Thrown when Isis is shutting down
     /// </summary>
@@ -287,7 +286,7 @@ namespace Isis
     internal delegate void ClientOfInitializer(Address sender);
     internal delegate void JFInfo(Address gaddr, string reason);
     internal delegate void SingleGroupInitializer(Address sender, View theView, int[] mm, int initialSeqn);
-    internal delegate void OracleMemberInitializer(Address sender, string[] names, Address[] gaddrs, long[] tsigs, View[] vs, bool[] isLarge, int[,] mms);        // Used in ISIS for initialization of a joining node
+    internal delegate void OracleMemberInitializer(Address sender, string[] names, Address[] gaddrs, long[] tsigs, View[] vs, bool[] isLarge, int[,] mms, Address[] CBMs);        // Used in ISIS for initialization of a joining node
     internal delegate void GroupJHandler(Address who, int mode, String[] gnames, Address[] gaddrs, long[] tsigs, int[] flags, int uid);                  // Handler for JOIN events
     internal delegate void GroupLHandler(Address who, int mode, String[] gnames, Address[] gaddrs, int[] flags, int uid);                  // Handler for LEAVE events
     internal delegate void GroupTHandler(Address who, int uid, Address[] gaddrs);                                   // Handler for TERMINATE
@@ -340,64 +339,10 @@ namespace Isis
     internal delegate void IMMCTDel(Address gaddr, Address sender, byte[] data, int hopcnt);
     internal delegate void IMMCNVDel(int IMVid, Address gaddr, Address sender, int hopcnt, View v);
     internal delegate void IMMCNVSDel(View[] v);
-    internal delegate void IMSendDel(Address nextHop, int pseudoDepth);
+    internal delegate void IMSendDel(Address nextHop, int nToScan);
     internal delegate void tdel(Address who, int which, byte[] payload);
     internal delegate void osdel(int vid, int mid, bool flag, Msg m);
     internal delegate void DHTChkptLoader(byte[] kba, byte[] oba);
-
-    // Used for IronPython only
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate();
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0>(t0 a0);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1>(t0 a0, t1 a1);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2>(t0 a0, t1 a1, t2 a2);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3>(t0 a0, t1 a1, t2 a2, t3 a3);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10, t11 a11);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10, t11 a11, t12 a12);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10, t11 a11, t12 a12, t13 a13);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10, t11 a11, t12 a12, t13 a13, t14 a14);
-    /// <ignore>
-    /// </ignore>
-    public delegate void IsisDelegate<t0, t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15>(t0 a0, t1 a1, t2 a2, t3 a3, t4 a4, t5 a5, t6 a6, t7 a7, t8 a8, t9 a9, t10 a10, t11 a11, t12 a12, t13 a13, t14 a14, t15 a15);
-
     internal delegate void VoidNoArg();
 
     internal class Callable
@@ -410,14 +355,27 @@ namespace Isis
         internal Callable(Delegate hisCb)
         {
             this.hisCb = hisCb;
-            ParameterInfo[] pi = hisCb.Method.GetParameters();
+            ParameterInfo[] pi = hisCb.GetType().GetMethod("Invoke").GetParameters();
             ptypes = pi.Select(p => p.ParameterType).ToArray();
             nParams = ptypes.Length;
-#if !(MONO_MODE  || MONODROID_MODE) //VN
-            if (nParams == 0)
-                cb = Delegate.CreateDelegate(typeof(VoidNoArg), hisCb.Target, hisCb.Method, false);
-            else if (nParams <= 16)
-                cb = Delegate.CreateDelegate(System.Linq.Expressions.Expression.GetActionType(ptypes), hisCb.Target, hisCb.Method, false);
+#if !(__MonoCS__  || ___ANDROID__) //VN
+            try
+            {
+                if (nParams == 0)
+                    cb = Delegate.CreateDelegate(typeof(Action), hisCb.Target, hisCb.Method, false);
+                else if (nParams <= 16)
+                {
+                    cb = Delegate.CreateDelegate(System.Linq.Expressions.Expression.GetActionType(ptypes), hisCb.Target, hisCb.Method, false);
+                }
+            }
+            // If we get a "MethodInfo must be a runtime MethodInfo object." error, use old way, otherwise propegate exception
+            catch (ArgumentException e)
+            {
+                if (!e.ParamName.Equals("method"))
+                    throw;
+            }
+#else
+            cb = null;
 #endif
         }
 
@@ -425,7 +383,7 @@ namespace Isis
         {
             if (args.Length != nParams)
                 throw new ArgumentException("Argument count must match number of parameters");
-#if !(MONO_MODE || MONODROID_MODE) //VN
+#if !(__MonoCS__ || ___ANDROID__) //VN
             if (cb != null)
                 switch (nParams)
                 {
@@ -479,7 +437,10 @@ namespace Isis
                         break;
                 }
             else
-                hisCb.DynamicInvoke((dynamic)args);
+            {
+                MethodInfo mi = hisCb.GetType().GetMethod("Invoke");
+                mi.Invoke(hisCb, args);
+            }
 #else
             hisCb.DynamicInvoke(args);
 #endif
@@ -596,7 +557,7 @@ namespace Isis
     /// </summary>
     internal class Isis
     {
-        internal static int ISIS_ORACLESIZE = 1;                // Target size for ORACLE;
+        internal static int ISIS_ORACLESIZE = 3;                // Target size for ORACLE;
         internal static bool ISIS_CANJOINORACLE = true;         // Can be overridden by environment variables
         internal static int ISIS_MAXSYSTEMSIZE = 100;           // Largest configurations that have been tested reasonably carefully.  We'll make this bigger and bigger over time.
         internal static int ISIS_MAXASYNCMTOTAL = 100;          // Inhibit new sends if more than this many messages are known to Isis.  Value adjusted each time view changes in ISISMEMBERS
@@ -609,7 +570,7 @@ namespace Isis
         internal static Aes ISIS_AES;
         internal static LockObject ISIS_AES_LOCK = new LockObject("ISIS_AES_LOCK");
         internal static Random ISIS_AESSEED;                    // Used to seed the initialization vector employed by AES
-#if MONODROID_MODE
+#if ___ANDROID__
         internal static bool ISIS_TCP_ONLY = true;             // If true, forces UNICAST_ONLY mode and sends all data over TCP point-to-point connection.  Requires ISIS_HOSTS
         internal static string ISIS_HOSTS = StaticItems.ipAddress;   // VN - the staticItems.ipaddress is the ip address entered in the Android App login screen
 #else
@@ -654,7 +615,7 @@ namespace Isis
         internal static string ISIS_NETWORK_INTERFACES;
         internal static int[] InterfaceIds;
         internal static int ISIS_MAXRETRIES = 3;                // Much fudging needed to get these right
-        internal static int ISIS_MAXLGRETRIES = 8;              // Much fudging needed to get these right.  This probably should be a function of log(groupsize)
+        internal static int ISIS_MAXLGRETRIES = 0;              // Much fudging needed to get these right.  My original theory was that this should be O(log(N)) but for now I've disabled it
         internal static int ISIS_DEFAULTTIMEOUT = 20000;        // 20 seconds
         internal static int ISIS_WARNAFTER = 5000;              // 5 seconds
         internal static int ISIS_REMAPDELAY = 120 * 60 * 1000;      // 2 hours
@@ -672,6 +633,7 @@ namespace Isis
         internal static Group ISISMEMBERS;
         internal static Thread OracleViewThread;            // Only active in the Oracle group
         internal static ViewDelta[] Proposed;
+        internal static int LeaderId;
         internal static Address NULLADDRESS = new Address();
         internal static Address ClientOf;
         internal static int newClientOfCnt;
@@ -683,13 +645,13 @@ namespace Isis
         internal static Semaphore lSema = new Semaphore(1, Int32.MaxValue);
         internal static int MapperEpochId;
 
-#if MONO_MODE
+#if __MonoCS__
         internal static string ISIS_NETMASK = "255.255.255.0";
         internal static string ISIS_SUBNET = "192.168.14.0";
-#else // MONO_MODE
+#else // __MonoCS__
         internal static string ISIS_NETMASK = "";
         internal static string ISIS_SUBNET = "";
-#endif // MONO_MODE
+#endif // __MonoCS__
 
         internal static List<Address> RIPList = new List<Address>();
         internal static LockObject RIPLock = new LockObject("RIPLock");
@@ -776,15 +738,6 @@ namespace Isis
             return ExtractStackTrace(Thread.CurrentThread);
         }
 
-        // Uses a deprecated API; called only while Isis is shutting down
-        internal static string SuspendAndExtractStackTrace(Thread targetThread)
-        {
-#pragma warning disable
-            targetThread.Suspend();
-#pragma warning restore
-            return ExtractStackTrace(targetThread);
-        }
-
         internal static string ExtractStackTrace(Thread targetThread)
         {
 #if EXTRACTCALLSTACKS
@@ -793,6 +746,8 @@ namespace Isis
                 if (targetThread != Thread.CurrentThread && targetThread.ThreadState == System.Threading.ThreadState.Running)
                     return "(can't extract stack trace on a running thread)";
                 string st = "{ ";
+                if (Thread.CurrentThread.Name != null)
+                    st = "Thread[" + Thread.CurrentThread.Name + "]{ ";
                 StackTrace stackTrace = new StackTrace(targetThread, false);
                 StackFrame[] stackFrames = stackTrace.GetFrames();
                 // write call stack method names
@@ -885,7 +840,7 @@ namespace Isis
         /// <returns></returns>
         public static int OnTimerThread(int ms, TimerCallback cb)
         {
-            return OnTimer(ms, delegate() { new Thread(delegate() { try { Thread.CurrentThread.Name = "OnTimer callback: " + cb.Method; cb(); } catch (IsisShutdown) { } }).Start(); });
+            return OnTimer(ms, delegate() { new Thread(delegate() { try { Thread.CurrentThread.Name = "OnTimer callback: " + cb.Method; cb(); } catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); } IsisSystem.ThreadTerminationMagic();  }).Start(); });
         }
 
         /// <summary>
@@ -974,33 +929,29 @@ namespace Isis
                 while (IsisSystem.IsisActive)
                 {
                     IsisSystem.RTS.ThreadCntrs[2]++;
-                    try
+                    LinkedListNode<TCB> tcb;
+                    List<TimerCallback> cbs = new List<TimerCallback>();
+                    IsisSystem.CheckParentThread();
+                    using (new LockAndElevate(timer_lock))
                     {
-                        LinkedListNode<TCB> tcb;
-                        List<TimerCallback> cbs = new List<TimerCallback>();
-                        IsisSystem.CheckParentThread();
-                        using (new LockAndElevate(timer_lock))
+                        while ((tcb = timer_list.First).Value.when <= NOW())
                         {
-                            while ((tcb = timer_list.First).Value.when <= NOW())
-                            {
-                                if ((IsisSystem.Debug & IsisSystem.TIMERS) != 0)
-                                    IsisSystem.WriteLine("TimerThread to call Timer Callback with id " + tcb.Value.id + " registered for time " + tcb.Value.when + " at time " + NOW());
-                                timer_list.Remove(tcb);
-                                cbs.Add(tcb.Value.cb);
-                            }
+                            if ((IsisSystem.Debug & IsisSystem.TIMERS) != 0)
+                                IsisSystem.WriteLine("TimerThread to call Timer Callback with id " + tcb.Value.id + " registered for time " + tcb.Value.when + " at time " + NOW());
+                            timer_list.Remove(tcb);
+                            cbs.Add(tcb.Value.cb);
                         }
-                        foreach (TimerCallback cb in cbs)
-                            cb();
-                        int delay;
-                        using (new LockAndElevate(timer_lock))
-                            delay = (int)Math.Min(2500, timer_list.First.Value.when - NOW());
-                        if (delay > 0)
-                            timer_wait.WaitOne(delay);
                     }
-                    catch (ThreadAbortException) { break; }
+                    foreach (TimerCallback cb in cbs)
+                        cb();
+                    int delay;
+                    using (new LockAndElevate(timer_lock))
+                        delay = (int)Math.Min(2500, timer_list.First.Value.when - NOW());
+                    if (delay > 0)
+                        timer_wait.WaitOne(delay);
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
         }
 
         internal static string GetTimerState()
@@ -1027,6 +978,8 @@ namespace Isis
 
         public static void NodeHasFailed(Address which, string howDiscovered, bool inhibitReport)
         {
+            if (Isis.ClientOf != null && Isis.ClientOf.Equals(which) && Isis.ISIS_ORACLESIZE == 1)
+                throw new IsisShutdown("System shutdown: Isis was configured with ISIS_ORACLESIZE=1 and the Oracle has failed or terminated.");
             if (!ORACLE.HasFirstView || !IsisSystem.IsisActive || IsisSystem.IsisRestarting)
                 return;
             using (new LockAndElevate(Isis.RIPLock))
@@ -1037,9 +990,7 @@ namespace Isis
             // Clean up the CanBeOracleList to make sure we don't try to add a deceased process to the ORACLE
             using (new LockAndElevate(CanBeOracleListLock))
                 CanBeOracleList.Remove(which);
-            string name = Thread.CurrentThread.Name;
-            if (name == null)
-                name = "Unnamed thread";
+            string name = Thread.CurrentThread.Name ?? "Unnamed thread";
             if (which.isMyAddress())
                 throw new IsisException("[" + name + "] Isis node " + Isis.my_address + " detected its own failure(" + howDiscovered + "); shutting down: " + IsisSystem.GetState());
             if ((IsisSystem.Debug & IsisSystem.FAILURES) != 0)
@@ -1191,9 +1142,9 @@ namespace Isis
                 //VN - change on Android - storing the log file in the external storage directory in the Android device.
                 if (ISIS_LOGGED && ISIS_LOG_CREATED == false)
                 {
-#if MONO_MODE
+#if __MonoCS__
                         string fname = "./OUT/ISIS-" + ipAddress.ToString() + "-" + my_pid + ".log";
-#elif MONODROID_MODE // !MONO_MODE but MONODROID_MODE
+#elif ___ANDROID__ // !__MonoCS__ but ___ANDROID__
                     string sdCardPath = null;
                     sdCardPath = Android.OS.Environment.ExternalStorageDirectory.ToString();
                     System.IO.Directory.CreateDirectory(sdCardPath + "/" + ISIS_LOGDIR);
@@ -1201,7 +1152,7 @@ namespace Isis
                     string fname = Path.Combine(Android.OS.Environment.ExternalStorageDirectory.Path + "/" + ISIS_LOGDIR, "ISIS-" + my_pid + ".log");
 #else
                         string fname = ISIS_LOGDIR + "\\ISIS-" + my_pid + ".log";
-#endif // !MONO_MODE
+#endif // !__MonoCS__
                     try
                     {
                         File.Delete(fname);
@@ -1209,14 +1160,14 @@ namespace Isis
                     catch { }
                     try
                     {
-#if !MONODROID_MODE
+#if !___ANDROID__
                             my_logstream = new FileStream(fname, FileMode.CreateNew);
 #else
                         my_logstream = new FileStream(fname, FileMode.Create, FileAccess.Write, FileShare.Write);//VN - the file should have wrtie access
 #endif
 
                         ISIS_LOG_CREATED = true;
-                        string rev = "$Rev: 847 $";
+                        string rev = "$Rev: 911 $";
                         int idx;
                         if ((idx = rev.IndexOf(' ')) != -1)
                         {
@@ -1259,7 +1210,7 @@ namespace Isis
                         Isis.ArrayResize<string>(ref which, n);
                     }
                     //VN - change on Android - getNetworkInterfaces() does not execute on Mono for android.
-#if MONODROID_MODE
+#if ___ANDROID__
                     InterfaceIds = new int[0];
 #else
                         InterfaceIds = ReliableSender.getNetworkInterfaces(which);
@@ -1312,6 +1263,10 @@ namespace Isis
                 SetupORACLE();
                 if (Isis.SLAVE_MODE)
                     return null;
+                int OracleTries = 0;
+            again:
+                if (OracleTries > 0)
+                    Thread.Sleep(OracleTries * 5000);
                 bool cantBeOracle = false;
                 int theDelay = 1500;
                 if (!ISIS_CANJOINORACLE || (Isis.ISIS_TCP_ONLY || Isis.ISIS_UNICAST_ONLY) && (Isis.my_address.p2pPort != Isis.ISIS_DEFAULT_PORTNOp || Isis.my_address.ackPort != Isis.ISIS_DEFAULT_PORTNOa))
@@ -1340,7 +1295,9 @@ namespace Isis
                         throw new IsisException("Isis ORACLE is " + Isis.foundOracle + " but attempt to connect with it failed");
                 }
                 if (cantBeOracle && Isis.ClientOf == null)
-                    if (Isis.foundOracle == null)
+                    if (++OracleTries < 2)
+                        goto again;
+                    else if (Isis.foundOracle == null)
                         throw new IsisException("I can't be the ORACLE but was unable to contact the ORACLE in ISIS_TCP_ONLY / ISIS_UNICAST_ONLY mode");
                     else
                         throw new IsisException("ORACLE is " + Isis.foundOracle + " but I was unable to connect with it in ISIS_TCP_ONLY / ISIS_UNICAST_ONLY mode");
@@ -1486,6 +1443,8 @@ namespace Isis
         {
             ISISMEMBERS.ViewHandlers += (ViewHandler)delegate(View v)
             {
+                if ((IsisSystem.Debug & (IsisSystem.TCPOVERLAY | IsisSystem.TUNNELING)) != 0)
+                    Isis.WriteLine(v.ToString());
                 Isis.ISIS_MAXASYNCMTOTAL = Math.Min(50, Math.Max(2, 1250 / v.members.Length));
                 List<Group> gc = Group.IsisGroupsClone();
                 foreach (Address who in v.leavers)
@@ -1494,6 +1453,7 @@ namespace Isis
                     foreach (Group g in gc)
                         Group.GroupNoteFailure(g, who);
                 }
+                ReliableSender.CleanTCP();
             };
             ISISMEMBERS.doRegister(Isis.INQUIRE, (WorkerSetupWaiter)delegate()
             {
@@ -1520,7 +1480,7 @@ namespace Isis
                 if (Isis.ISISMEMBERS.theView.viewid != vid)
                     Isis.WriteLine(Isis.ISISMEMBERS.GetView().ToString());
                 vid = Isis.ISISMEMBERS.theView.viewid;
-                Isis.WriteLine("[" + Isis.TimeToString(Isis.NOW()) + "]: Received <" + message + "> in view " + vid);
+                Isis.WriteLine("PING: [" + Isis.TimeToString(Isis.NOW()) + "]: Received <" + message + "> in view " + vid);
                 pingCntr++;
             });
             ISISMEMBERS.doRegister(Isis.TERMINATE, (GTerminator)delegate(Address gaddr)
@@ -1604,10 +1564,11 @@ namespace Isis
             {
                 List<PendingLeaderOps> newPendingLeaderOpsList = new List<PendingLeaderOps>();
                 foreach (PendingLeaderOps outerPlo in PendingLeaderOpsList)
-                    if (outerPlo.group.gaddr.Equals(v.gaddr))
-                        callbackList.Add(outerPlo);
-                    else if (outerPlo.replyMsg == null)
+                {
+                    if (!outerPlo.group.gaddr.Equals(v.gaddr))
                         newPendingLeaderOpsList.Add(outerPlo);
+                    else if (outerPlo.replyMsg != null)
+                        callbackList.Add(outerPlo);
                     else
                     {
                         PendingLeaderOps plo = outerPlo;
@@ -1623,11 +1584,13 @@ namespace Isis
                                     plo.group.doSend(false, false, DALDONE, plo.group.gaddr, plo.Sender, plo.uid);
                                 });
                             }
-                            catch (IsisShutdown) { }
+                            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                            IsisSystem.ThreadTerminationMagic();
                         });
                         t.Name = "DAL Worker thread spawned in PendingLeaderViewChange";
                         t.Start();
                     }
+                }
                 PendingLeaderOpsList = newPendingLeaderOpsList;
             }
             foreach (PendingLeaderOps outerPlo in callbackList)
@@ -1648,7 +1611,8 @@ namespace Isis
                             plo.dal();
                         g.clearReplyTo();
                     }
-                    catch (IsisShutdown) { }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 t.Name = "DoAsLeader Callback";
                 t.Start();
@@ -1784,6 +1748,7 @@ namespace Isis
             {
                 if (!IsisSystem.IsisActive || !ORACLE.IAmLeader() || my_address.CompareTo(who) <= 0)
                     return;
+                Isis.WriteLine("**** GOT ORACLERUNNING FROM " + who + ", I am " + Isis.my_address);
                 if (ISISMEMBERS.HasFirstView)
                 {
                     ISISMEMBERS.doSend(false, false, PARTITIONED, who);
@@ -1842,8 +1807,7 @@ namespace Isis
                             Isis.OnTimer(5000, (TimerCallback)delegate() { using (new LockAndElevate(recent_inquiries_lock)) recent_inquiries.Remove(ri); });
                         }
                     }
-                    bool coreOracleJoiner = false;
-
+                    bool coreOracleJoiner = false, amACandidate = false;
                     using (new LockAndElevate(Isis.ORACLE.Lock))
                     {
                         if (ORACLE.HasFirstView && (mode & Group.CANBEORACLE) != 0)
@@ -1865,10 +1829,12 @@ namespace Isis
                                         }
                             }
                             else if (ORACLE.IAmLeader())
-                                // Pass the word: this is a candidate to join the oracle if the need ever arises
-                                ORACLE.Send(Isis.CANBEORACLE, who);
+                                amACandidate = true;
                         }
                     }
+                    if (amACandidate)
+                        // Pass the word: this is a candidate to join the oracle if the need ever arises
+                        ORACLE.Send(Isis.CANBEORACLE, who);
 
                     if (coreOracleJoiner == false)
                     {
@@ -1898,6 +1864,7 @@ namespace Isis
                 {
                     Thread.CurrentThread.Name = "MCMDSocket.InitializeMap";
                     MCMDSocket.InitializeMap(who, gnames, gaddrs);
+                    IsisSystem.ThreadTerminationMagic();
                 }).Start();
                 VUProtocol(JOIN, who, mode, gnames, gaddrs, tsigs, flags, uid);
             });
@@ -1997,80 +1964,56 @@ namespace Isis
                 // Another special situation since failure may have caused the prior leader to crash
                 // Todo: Look for a way to fold this into the DoAsLeader pattern used above
                 // For now the needed pattern is implemented separately in the VUProtocol logic
-                bool IwasOldLeader = ORACLE.LeaderMode;
+
+                List<Group> glist = new List<Group>(), theClone = Group.IsisAllGroupsClone();
+                bool IwasOldLeader = ORACLE.LeaderMode, IamNewLeader = false;
                 if ((IsisSystem.Debug & (IsisSystem.GROUPEVENTS | IsisSystem.FAILURES)) != 0)
                     Isis.WriteLine("FDETECTION message received for " + who + "(I was old leader: " + IwasOldLeader + ")");
                 if (who.isMyAddress())
                     IsisSystem.GotPoison("Failure detection broadcast reported my demise");
-                ReliableSender.SendPoison(who, Isis.my_address + " believes that you have failed");
                 ISISMEMBERS.doSend(false, false, FANNOUNCE, who);
-                if (IwasOldLeader == false)
-                {
-                    // Not my problem unless I'm the new leader
-                    for (int om = 0; om < ORACLE.theView.members.Length && !ORACLE.theView.members[om].isMyAddress(); om++)
-                        if (!ORACLE.theView.hasFailed[om] && who.Equals(ORACLE.theView.members[om]) == false)
-                            return;
-                }
+                View theView;
+                using (new LockAndElevate(ORACLE.ViewLock))
+                    theView = ORACLE.theView;
                 ReliableSender.NodeHasFailed(who);
-
-                List<Group> glist = new List<Group>(), theClone = Group.IsisAllGroupsClone();
-                int r;
-
-                foreach (Group g in theClone)
-                    if (g.theView != null && (r = g.theView.GetRankOf(who)) != -1)
-                    {
-                        if ((IsisSystem.Debug & (IsisSystem.GROUPEVENTS | IsisSystem.FAILURES)) != 0)
-                            Isis.WriteLine("FDETECTION(Isis_Groups) calling View.NoteFailed in <" + g.gname + "> for the member with rank " + r);
-                        View.noteFailed(g, who);
-                        if (g != ORACLE)
-                            glist.Add(g);
-                    }
-
-                int len = glist.Count();
-                if (ORACLE.theView.GetRawRankOf(who) == -1)
-                {
-                    if (len > 0)
-                    {
-                        String[] gnames = new String[len];
-                        Address[] groups = new Address[len];
-                        int n = 0;
-                        foreach (Group g in glist)
-                        {
-                            groups[n] = g.gaddr;
-                            gnames[n] = g.gname;
-                            ++n;
-                        }
-                        VUProtocol(LEAVE, who, 0, gnames, groups, null, null, -1);
-                    }
-                    return;
-                }
-
-                bool IamNewLeader = false;
-                List<Group> grps = new List<Group>();
-                theClone = Group.IsisGroupsClone();
+                theClone = Group.IsisAllGroupsClone();
                 foreach (Group g in theClone)
                 {
                     using (new ILock(ILock.LLBRIEF, g.gaddr))
                     {
-                        if (g.HasFirstView == false) continue;
-                        int hisRank = g.theView.GetRawRankOf(who);
+                        if (g.HasFirstView == false)
+                            continue;
+                        int hisRank = g.theView.GetRankOf(who);
                         if (hisRank != -1)
-                            grps.Add(g);
-                        if (g == ORACLE && IwasOldLeader == false && g.theView.IAmLeader() == true)
                         {
-                            if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
-                                Isis.WriteLine("I am new leader!");
-                            IamNewLeader = true;
+                            if ((IsisSystem.Debug & (IsisSystem.GROUPEVENTS | IsisSystem.FAILURES)) != 0)
+                                Isis.WriteLine("FDETECTION(Isis_Groups) calling View.NoteFailed in <" + g.gname + "> for the member with rank " + hisRank);
+                            View.noteFailed(g, who);
                         }
+                        if ((hisRank = g.theView.GetRawRankOf(who)) == -1)
+                            continue;
+                        glist.Add(g);
+                        if (g == ORACLE)
+                            if (IwasOldLeader == false && g.theView.IAmLeader() == true)
+                            {
+                                if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
+                                    Isis.WriteLine("I am new leader!");
+                                IamNewLeader = true;
+                            }
+                            else if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
+                                Isis.WriteLine("In scan of g.ORACLE I am NOT the new leader because IwasOldLeader=" + IwasOldLeader + " and g.theView.IAmLeader=" + g.theView.IAmLeader() + " in view " + g.theView);
                     }
                 }
-                len = grps.Count();
+                if (Isis.ClientOf != null)
+                    return;
+                // Code run only by members of the ORACLE group
+                int len = glist.Count();
                 if (len > 0)
                 {
                     String[] gnames = new String[len];
                     Address[] groups = new Address[len];
                     int n = 0;
-                    foreach (Group g in grps)
+                    foreach (Group g in glist)
                     {
                         groups[n] = g.gaddr;
                         gnames[n] = g.gname;
@@ -2078,58 +2021,72 @@ namespace Isis
                     }
                     VUProtocol(LEAVE, who, 0, gnames, groups, null, null, -1);
                 }
-                if (IamNewLeader)
+                if (!IamNewLeader)
+                    return;
+                Isis.LeaderId += ORACLE.theView.GetMyRank();
+                ReliableSender.SendPoison(who, Isis.my_address + " believes that you have failed");
+                new Thread(delegate()
                 {
-                    (new Thread(delegate()
+                    Dictionary<Address, bool> OnceAndFutureOracleMembers = new Dictionary<Address, bool>();
+                    foreach (Address a in ORACLE.theView.members)
+                        OnceAndFutureOracleMembers.Add(a, false);
+                    int scannedTo = -1;
+                    try
                     {
-                        try
+                        if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
+                            Isis.WriteLine("Sending INQUIRE message...");
+                        ORACLE.theView.isFinal = false;
+                        List<Address> mustContact = new List<Address>();
+                        ORACLE.doQueryInvoke(Group.ALL, new Timeout(Isis.ISIS_DEFAULTTIMEOUT * 20, Timeout.TO_FAILURE, "INQUIRE"), INQUIRE, my_address, (MergeProposals)delegate(Address[] from, Address[] hisLeader, ViewDelta[][] vds)
                         {
-                            if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
-                                Isis.WriteLine("Sending INQUIRE message...");
-                            ORACLE.theView.isFinal = false;
-                            ORACLE.doQueryInvoke(Group.ALL, new Timeout(Isis.ISIS_DEFAULTTIMEOUT * 20, Timeout.TO_FAILURE, "INQUIRE"), INQUIRE, my_address, (MergeProposals)delegate(Address[] from, ViewDelta[][] vds)
+                            doMergeProposals(from, hisLeader, vds, OnceAndFutureOracleMembers, mustContact, ref scannedTo);
+                        });
+                        while (mustContact.Count() > 0)
+                        {
+                            List<Address> contacting = mustContact;
+                            mustContact = new List<Address>();
+                            foreach (Address a in contacting)
                             {
-                                Isis.ViewDelta[] proposed = Isis.Proposed;
-                                if (proposed == null) proposed = new Isis.ViewDelta[0];
-                                for (int v = 0; v < from.Length; v++)
-                                {
-                                    ViewDelta[] vd = vds[v];
-                                    if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
-                                    {
-                                        Isis.WriteLine("Recieved INQUIRE replies...");
-                                        for (int vv = 0; vv < vd.Length; vv++)
-                                            Isis.WriteLine("REPLY[" + v + ":" + vv + "]=" + vd[vv]);
-                                    }
-                                    int minLen = Math.Min(vd.Length, proposed.Length);
-                                    for (int i = 0; i < minLen; i++)
-                                        if (vd[i].Equals(proposed[i]) == false)
-                                            throw new IsisException("Isis.Proposed/vdu comparison: Reply from " + from[v] + "... Neither was a strict prefix of the other!");
-                                    if (vd.Length > proposed.Length)
-                                        Isis.Proposed = vd;
-                                }
-                            });
-                            if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
-                            {
-                                Isis.WriteLine("After INQUIRE proposed contains...");
-                                if (Isis.Proposed == null)
-                                    Isis.WriteLine(" ... Isis.proposed is null");
-                                else
-                                    for (int p = 0; p < Isis.Proposed.Length; p++)
-                                        Isis.WriteLine("PROPOSAL[" + p + "]=" + Isis.Proposed[p]);
-                                Isis.WriteLine("Starting the OracleViewTask thread");
+                                List<Address> whoReplied = new List<Address>();
+                                List<Address> hisLeader = new List<Address>();
+                                List<ViewDelta[]> vds = new List<ViewDelta[]>();
+                                ISISMEMBERS.doP2PQuery(a, new Timeout(Isis.ISIS_DEFAULTTIMEOUT * 20, Timeout.TO_FAILURE, "INQUIRE"), INQUIRE, my_address, whoReplied, hisLeader, vds);
+                                if (whoReplied.Count() > 0)
+                                    doMergeProposals(whoReplied.ToArray(), hisLeader.ToArray(), vds.ToArray(), OnceAndFutureOracleMembers, mustContact, ref scannedTo);
                             }
-                            // Runs only in the current leader... and now, that's me!
-                            ORACLE.LeaderMode = true;
-                            ORACLE.TakingOver = true;
-                            Isis.OracleViewThread = new Thread(Isis.OracleViewTask);
-                            Isis.IAmOracle = true;
-                            Isis.OracleViewThread.Name = "Isis <ORACLE> View Task";
-                            Isis.OracleViewThread.Start();
-                            MCMDSocket.RunMappingTask();
                         }
-                        catch (IsisShutdown) { }
-                    })).Start();
-                }
+                        int rCnt = 0;
+                        foreach (KeyValuePair<Address, bool> kvp in OnceAndFutureOracleMembers)
+                                if (kvp.Value)
+                                    ++rCnt;
+                        if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
+                        {
+                            string resps = " ";
+                            foreach (KeyValuePair<Address, bool> kvp in OnceAndFutureOracleMembers)
+                                resps += "<" + kvp.Key + "::" + kvp.Value + "> ";
+                            Isis.WriteLine("After INQUIRE: Contacted " + resps + " total of " + rCnt + " replies, needed " + (OnceAndFutureOracleMembers.Count()+1)/2);
+                            Isis.WriteLine("After INQUIRE proposed contains...");
+                            if (Isis.Proposed == null)
+                                Isis.WriteLine(" ... Isis.proposed is null");
+                            else
+                                for (int p = 0; p < Isis.Proposed.Length; p++)
+                                    Isis.WriteLine("PROPOSAL[" + p + "]=" + Isis.Proposed[p]);
+                            Isis.WriteLine("Starting the OracleViewTask thread");
+                        }
+                        if(rCnt < (OnceAndFutureOracleMembers.Count()+1)/2)
+                            throw new IsisException("New ORACLE leader was unable to contact a quorum of once and future ORACLE members");
+                        // Runs only in the current leader... and now, that's me!
+                        ORACLE.LeaderMode = true;
+                        ORACLE.TakingOver = true;
+                        Isis.OracleViewThread = new Thread(Isis.OracleViewTask);
+                        Isis.IAmOracle = true;
+                        Isis.OracleViewThread.Name = "Isis <ORACLE> View Task";
+                        Isis.OracleViewThread.Start();
+                        MCMDSocket.RunMappingTask();
+                    }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                    IsisSystem.ThreadTerminationMagic();
+                }).Start();
             });
             ORACLE.doRegister(BECLIENT, (BeClient)delegate(string gname)
             {
@@ -2145,6 +2102,61 @@ namespace Isis
             });
             ORACLE.GroupOpen = ORACLE.WasOpen = true;
             ReliableSender.StartGroupReader(ORACLE);
+        }
+
+        // As we INQUIRE we learn about new proposals, which we merge into the existing list.  We may also encounter added group members
+        // Handles the so-called "dueling leaders" situation, in which there are two proposals for the same slot
+        internal static void doMergeProposals(Address[] from, Address[] hisLeader, ViewDelta[][] vds, Dictionary<Address,bool> OnceAndFutureOracleMembers, List<Address>mustContact, ref int scannedTo)
+        {
+            Isis.ViewDelta[] proposed = Isis.Proposed ?? new Isis.ViewDelta[0];
+            for (int v = 0; v < from.Length; v++)
+            {
+                if (OnceAndFutureOracleMembers.ContainsKey(from[v]))
+                    OnceAndFutureOracleMembers[from[v]] = true;
+                else
+                    throw new IsisException("Unexpected ORACLE INQUIRY response: from " + from[v] + " but I didn't think I had contacted him!");
+                ViewDelta[] vd = vds[v];
+                if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
+                {
+                    Isis.WriteLine("Recieved INQUIRE replies...");
+                    for (int vv = 0; vv < vd.Length; vv++)
+                        Isis.WriteLine("REPLY[" + v + ":" + vv + "]=" + vd[vv]);
+                }
+                bool useProposal = false, ignoreIt = false;
+                int minLen = Math.Min(vd.Length, proposed.Length);
+                for (int i = 0; i < minLen; i++)
+                {
+                    if (vd[i].leaderId > Isis.Proposed[i].leaderId)
+                    {
+                        // Dueling leaders (very rare): in this case we just encountered a "better" proposal
+                        // We'll switch to it even if it is shorter
+                        if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
+                            Isis.WriteLine("Dueling leaders!  Found a better proposal, switching to it");
+                        useProposal = true;
+                    }
+                    else if (vd[i].leaderId < Isis.Proposed[i].leaderId)
+                    {
+                        // Dueling leaders (very rare): in this case wejust encountered an old "stale" proposal
+                        // We'll switch to it even if it is shorter
+                        if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
+                            Isis.WriteLine("Dueling leaders!  New proposal is inferior, ignoring it");
+                        ignoreIt = true;
+                        break;
+                    }
+                    if (i > scannedTo && vd[i].gaddr.Equals(ORACLE.gaddr) && vd[i].joiners.Length > 0)
+                    {
+                        scannedTo = i;
+                        foreach (Address a in vd[i].joiners)
+                            if (!OnceAndFutureOracleMembers.ContainsKey(a))
+                            {
+                                OnceAndFutureOracleMembers.Add(a, false);
+                                mustContact.Add(a);
+                            }
+                    }
+                }
+                if (!ignoreIt && (Isis.Proposed == null || vd.Length > Isis.Proposed.Length || useProposal))
+                    Isis.Proposed = vd;
+            }
         }
 
         internal static void SendInitialOracleLeaderInfo(Address who, Address OracleLeader)
@@ -2272,6 +2284,7 @@ namespace Isis
             public string gname = "";
             public Address gaddr;
             public long tsig;
+            public long leaderId;
             public int[] mcmdmap;
             public int prevVid;
             public bool isLarge;
@@ -2286,6 +2299,7 @@ namespace Isis
 
             internal ViewDelta(string name, Address ga, long ts, int[] mm, int v, int nm, Address[] wantJoin, Address[] wantLeave, bool lf)
             {
+                leaderId = Isis.LeaderId;
                 gname = name; gaddr = ga; tsig = ts; mcmdmap = mm; prevVid = v; joiners = wantJoin; leavers = wantLeave; isLarge = lf;
                 if (isLarge)
                     lastSeqns = new int[0];
@@ -2295,6 +2309,7 @@ namespace Isis
 
             internal ViewDelta(string name, Address g, int[] mm, int v, int[] ls, bool lf)
             {
+                leaderId = Isis.LeaderId;
                 gaddr = g; mcmdmap = mm; prevVid = v; lastSeqns = ls; isLarge = lf;
                 joiners = leavers = new Address[0];
             }
@@ -2306,7 +2321,7 @@ namespace Isis
 
             public override string ToString()
             {
-                return " Group <" + gname + "> " + gaddr + " (mmap " + MCMDSocket.PMCAddr(mcmdmap[0]) + ":" + MCMDSocket.PMCAddr(mcmdmap[1]) + "), isLarge=" + isLarge + ", prevVid " + prevVid + idsToVec() +
+                return " LeaderId=" + leaderId + ", Group <" + gname + "> " + gaddr + " (mmap " + MCMDSocket.PMCAddr(mcmdmap[0]) + ":" + MCMDSocket.PMCAddr(mcmdmap[1]) + "), isLarge=" + isLarge + ", prevVid " + prevVid + idsToVec() +
                     ", Joining: {" + Address.ToString(Expand(joiners)) + "}, Leaving: {" + Address.ToString(Expand(leavers)) + "}";
             }
 
@@ -2352,16 +2367,16 @@ namespace Isis
             }
         }
 
-        delegate void MergeProposals(Address[] who, ViewDelta[][] vds);
+        delegate void MergeProposals(Address[] who, Address[] hisLeader, ViewDelta[][] vds);
 
-        internal static void VUProtocol(int request, Address who, int mode, String[] gnames, Address[] groups, long[] tsigs, int[] flags, int uid)
+        internal static void VUProtocol(int request, Address who, int mode, String[] gnames, Address[] gaddrs, long[] tsigs, int[] flags, int uid)
         {
             if ((IsisSystem.Debug & (IsisSystem.VIEWCHANGE | IsisSystem.GVELOGIC)) != 0)
             {
                 string gs = " ";
                 foreach (string s in gnames)
                     gs += s + " ";
-                Isis.WriteLine("Creating a GVE entry for request " + request + ", mode " + mode + ", address " + who + ", uid " + uid + ", gnames [" + gs + "], groups " + Address.ToString(groups));
+                Isis.WriteLine("Creating a GVE entry for request " + request + ", mode " + mode + ", address " + who + ", uid " + uid + ", gnames [" + gs + "], groups " + Address.ToString(gaddrs) + ", called from "+Isis.ExtractStackTrace());
             }
             if (uid != -1)
             {
@@ -2375,20 +2390,32 @@ namespace Isis
                             return;
                         }
             }
-            if (gnames == null) gnames = new String[0];
-            if (groups == null) groups = new Address[0];
+            gnames = gnames ?? new String[0];
+            gaddrs = gaddrs ?? new Address[0];
             using (new LockAndElevate(GVELock))
             {
                 bool fnd = false;
-                GVEvent gve = new GVEvent(request, who, mode, gnames, groups, tsigs, flags, uid);
+                GVEvent gve = new GVEvent(request, who, mode, gnames, gaddrs, tsigs, flags, uid);
                 foreach (GVEvent oldgve in GVEList)
-                    if (oldgve.uid == uid && oldgve.who.Equals(who))
+                    if (oldgve.who.Equals(who) && oldgve.mode == mode && oldgve.gnames.Length == gnames.Length)
                     {
-                        fnd = true;
-                        break;
+                        bool sameGroups = true;
+                        for (int i = 0; i < gnames.Length; i++)
+                            if (!oldgve.gnames[i].Equals(gnames[i]) || !oldgve.gaddrs[i].Equals(gaddrs[i]) || oldgve.tsigs[i] != tsigs[i])
+                            {
+                                sameGroups = false;
+                                break;
+                            }
+                        if (sameGroups)
+                        {
+                            fnd = true;
+                            break;
+                        }
                     }
                 if (!fnd)
                     GVEList.Add(gve);
+                else if ((IsisSystem.Debug & (IsisSystem.VIEWCHANGE | IsisSystem.GVELOGIC)) != 0)
+                    Isis.WriteLine("Found an identical GVE entry... ignoring this VUProtocol request");
             }
             if ((IsisSystem.Debug & (IsisSystem.VIEWCHANGE | IsisSystem.GVELOGIC)) != 0)
                 Isis.WriteLine("VUProtocol: BarrierRelease for LLWAIT/LGVEUPDATE");
@@ -2455,7 +2482,8 @@ namespace Isis
                         ORACLE.doSendRaw(Isis.ORACLERUNNING, Isis.my_address);
                     }
                 }
-                catch (IsisShutdown) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             });
             OracleBeaconTask.Name = "OracleBeaconTask";
             OracleBeaconTask.Start();
@@ -2524,8 +2552,9 @@ namespace Isis
                         Group.IPMCViewCast(Isis.ISISMEMBERS.theView.viewid, Isis.ISISMEMBERS.gaddr, Isis.my_address, Isis.ISISMEMBERS.theView);
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
             finally { OracleBeaconTaskWait.Release(1); }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         // Core of the virtual synchrony implementation, runs only in the leader.  The list will only contain one element unless
@@ -2572,7 +2601,7 @@ namespace Isis
                 {
                     if ((IsisSystem.Debug & IsisSystem.VIEWCHANGE) != 0)
                         Isis.WriteLine("VUProtocol: FDETECTION/LEAVE event");
-                    if (gve.request == FDETECTION && ORACLE.theView.GetRawRankOf(gve.who) != -1)
+                    if (ORACLE.theView.GetRawRankOf(gve.who) != -1)
                     {
                         CommitGlist.Add(ORACLE);
                         ProposeGlist.Add(ORACLE);
@@ -2626,7 +2655,7 @@ namespace Isis
                                 }
                                 // Create tracking proxy for groups if needed
                                 ++nCreate;
-                                g = Group.TrackingProxy(gve.gnames[i], "VUP", gve.gaddrs[i], gve.tsigs[i], null, new View(gve.gaddrs[i], new Address[] { gve.who }, -1, false), gve.flags[i], true);
+                                g = Group.TrackingProxy(gve.gnames[i], "VUP", gve.gaddrs[i], gve.tsigs[i], null, new View(gve.gnames[i], gve.gaddrs[i], new Address[] { gve.who }, -1, false), gve.flags[i], true);
                                 CreateList.Add(g);
                                 continue;
                             }
@@ -2902,7 +2931,10 @@ namespace Isis
                                 foreach (ViewDelta v in vds)
                                     Isis.WriteLine("   ..." + v);
                             }
-                            ORACLE.doP2PSend(who, true, INITIALVIEW, Isis.my_address, names, gaddrs, tsigs, vs, isl, mms);
+                            Address[] CBMs;
+                            using (new LockAndElevate(Isis.CanBeOracleListLock))
+                                CBMs = Isis.CanBeOracleList.ToArray();
+                            ORACLE.doP2PSend(who, true, INITIALVIEW, Isis.my_address, names, gaddrs, tsigs, vs, isl, mms, CBMs);
                         }
             }
             else
@@ -3244,7 +3276,7 @@ namespace Isis
                     {
                         g = Group.TrackingProxyLookup(vd.gaddr);
                         if (g == null)
-                            g = Group.TrackingProxy(vd.gname, "Commit GVUPdates", vd.gaddr, vd.tsig, vd.mcmdmap, new View(vd.gaddr, vd.joiners, vd.prevVid + 1, false), vd.isLarge ? Group.G_ISLARGE : 0, false);
+                            g = Group.TrackingProxy(vd.gname, "Commit GVUPdates", vd.gaddr, vd.tsig, vd.mcmdmap, new View(vd.gname, vd.gaddr, vd.joiners, vd.prevVid + 1, false), vd.isLarge ? Group.G_ISLARGE : 0, false);
                         UpdateGroupView(true, vd, g, "TrackingProxy", ref newView);
                     }
                     else
@@ -3374,7 +3406,7 @@ namespace Isis
                     Group.TPGroups.Remove(g);
                 return;
             }
-            View nextView = new View(vd.gaddr, newView.ToArray(), vd.prevVid + 1, (g.flags & Group.G_ISLARGE) != 0);
+            View nextView = new View(vd.gname, vd.gaddr, newView.ToArray(), vd.prevVid + 1, (g.flags & Group.G_ISLARGE) != 0);
             if (g.isTrackingProxy == false)
             {
                 nextView.joiners = validatedJoiners;
@@ -3437,6 +3469,7 @@ namespace Isis
         /// A flag application threads can monitor to sense Isis shutdown
         /// </summary>
         public static bool IsisActive = false;
+        internal static bool IsisWasActive = false;
         internal static bool IsisAlreadyRan = false;
         internal static bool IsisRestarting = false;
         internal static int IsisJoinCounter = 0;
@@ -3488,7 +3521,7 @@ namespace Isis
 
         internal const long TOKENLAYER = FLUSHING | TOKENFLUSH | TOKENLOGIC;
 
-        internal static long Debug = FAILURES;
+        internal static long Debug = 0;
 
         /// <summary>
         /// Returns this process's address.  
@@ -3521,7 +3554,7 @@ namespace Isis
             string state = "";
             if (IsisSystem.IsisActive == false)
                 return ("ISIS is inactive");
-            state = "\r\n----------------------- ISIS state for " + Isis.my_address + ":\r\n";
+            state = "\r\n----------------------- ISIS state for " + Isis.my_address + (Isis.ClientOf == null? " [leaderId="+Isis.LeaderId+"]": "") + ":\r\n";
             for (int sc = 0; sc < 15; sc++)
             {
                 try
@@ -3700,6 +3733,7 @@ namespace Isis
 
             internal void check()
             {
+#if WARN_ON_LONG_DELAYS
                 if (Isis.NOW() < 20000 || Isis.NOW() - checkedAt < 1000)
                     return;
                 checkedAt = Isis.NOW();
@@ -3716,19 +3750,20 @@ namespace Isis
 
                 if (rdelay > Isis.ISIS_WARNAFTER)
                     if (rdelay > Isis.ISIS_DEFAULTTIMEOUT)
-                        throw new IsisException("EXCEPTION: receive thread has been processing a received message for " + rdelay + " doing " + Isis.SuspendAndExtractStackTrace(ReliableSender.myP2PThread));
+                        throw new IsisException("EXCEPTION: receive thread has been processing a received message for " + rdelay);
                     else if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0)
                         Isis.WriteLine("WARNING: receive thread has been processing a received message for " + rdelay + " doing " + Isis.ExtractStackTrace(ReliableSender.myP2PThread));
                 if (a0delay > Isis.ISIS_WARNAFTER)
                     if (a0delay > Isis.ISIS_DEFAULTTIMEOUT)
-                        throw new IsisException("EXCEPTION: ACK socket-handler thread has been trying to put a received ack on the ACKBB for " + a0delay + "ms doing " + Isis.SuspendAndExtractStackTrace(ReliableSender.myAckThread));
+                        throw new IsisException("EXCEPTION: ACK socket-handler thread has been trying to put a received ack on the ACKBB for " + a0delay + "ms");
                     else if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0)
-                        Isis.WriteLine("WARNING: ACK socket-handler thread has been trying to put a received ack on the ACKBB for " + a0delay + "ms doing " + Isis.ExtractStackTrace(ReliableSender.myAckThread));
+                        Isis.WriteLine("WARNING: ACK socket-handler thread has been trying to put a received ack on the ACKBB for " + a0delay + "ms");
                 if (a1delay > Isis.ISIS_WARNAFTER)
                     if (a1delay > Isis.ISIS_DEFAULTTIMEOUT)
-                        throw new IsisException("EXCEPTION: ACK processing thread has been processing a received ack/nack for " + a1delay + "ms doing " + Isis.SuspendAndExtractStackTrace(ReliableSender.myAckThread));
+                        throw new IsisException("EXCEPTION: ACK processing thread has been processing a received ack/nack for " + a1delay + "ms");
                     else if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0)
                         Isis.WriteLine("WARNING: ACK processing thread has been processing a received ack/nack for " + a1delay + "ms doing " + Isis.ExtractStackTrace(ReliableSender.myAckThread));
+#endif
             }
         }
 
@@ -3742,12 +3777,10 @@ namespace Isis
             string s = "Summary of network statistics:\r\n    ";
             using (new LockAndElevate(IsisSystem.RTS.Lock))
             {
-                if (!Isis.ISIS_TCP_ONLY)
-                    s += "SENT: " + RTS.UDPsent + " UDP (" + RTS.UDPBsent + " non-duplicated bytes), " + RTS.TokensSent + " tokens, " + RTS.IPMCsent + " IPMC (" + RTS.IPMCBsent + " bytes; " + RTS.StabilitySent + " were stability packets), ";
+                s += "SENT: " + RTS.UDPsent + " UDP (" + RTS.UDPBsent + " non-duplicated bytes), " + RTS.TokensSent + " tokens, " + RTS.IPMCsent + " IPMC (" + RTS.IPMCBsent + " bytes; " + RTS.StabilitySent + " were stability packets), ";
                 s += RTS.TCPsent + " TCP (" + RTS.TCPBsent + " bytes), " + RTS.ACKsent + " Acks, " + RTS.NACKsent + " Nacks.\r\n    ";
-                if (!Isis.ISIS_TCP_ONLY)
-                    s += "RECV: " + RTS.UDPrcvd + " UDP (" + RTS.Discarded + " were dups; " + RTS.UDPBrcvd + " bytes), " + RTS.TokensRcvd + " tokens, " + RTS.IPMCrcvd + " IPMC (" + RTS.IPMCBrcvd + " bytes; " + RTS.StabilityRcvd + " were stability packets), ";
-                s += RTS.TCPrcvd + " TCP (" + RTS.TCPBrcvd + " bytes), " + RTS.ACKrcvd + " Acks, " + RTS.NACKrcvd + " Nacks, " + RTS.TTRet + " token-triggered resends\r\n";
+                s += "RECV: " + RTS.UDPrcvd + " UDP (" + RTS.Discarded + " were dups; " + RTS.UDPBrcvd + " bytes), " + RTS.TokensRcvd + " tokens, " + RTS.IPMCrcvd + " IPMC (" + RTS.IPMCBrcvd + " bytes; " + RTS.StabilityRcvd + " were stability packets), ";
+                s += RTS.TCPrcvd + " TCP (" + RTS.TCPBrcvd + " bytes); " + RTS.Discarded + " were dups, " + RTS.ACKrcvd + " Acks, " + RTS.NACKrcvd + " Nacks, " + RTS.TTRet + " token-triggered resends\r\n";
             }
             return s;
         }
@@ -3776,8 +3809,6 @@ namespace Isis
         /// </summary>
         public static void Start()
         {
-	    Console.WriteLine("Enter start");
-
             ParentThread = Thread.CurrentThread;
             if (IsisActive && !Isis.SLAVE_MODE)
                 throw new IsisException("Isis can't be started multiple times.");
@@ -3789,7 +3820,7 @@ namespace Isis
                 // created but they don't really run.  To work around that, Isis Start() itself runs in
                 // a separate thread.  If this thread can start, other threads can start too!
                 Thread.CurrentThread.Name = "IsisSystem.Start() initialization thread.";
-                IsisActive = true;
+                IsisWasActive = IsisActive = true;
                 IsisAlreadyRan = true;
                 IsisRestarting = true;
                 Isis.timer_thread = new Thread(Isis.TimerThread);
@@ -3797,8 +3828,7 @@ namespace Isis
                 Isis.timer_thread.Name = "Isis timer callback thread";
                 Isis.timer_thread.Start();
                 ReliableSender.ResenderThreadLaunch();
-                if (Isis.my_address == null)
-                    Isis.my_IPaddress = Isis.setMyAddress();
+                Isis.my_IPaddress = Isis.my_IPaddress ?? Isis.setMyAddress();
                 IPAddress myIP = Isis.my_IPaddress;
                 if (Isis.SLAVE_MODE == false)
                 {
@@ -3819,6 +3849,7 @@ namespace Isis
                 WaitUntilIsisIsRunning(false);
                 if (Isis.SLAVE_MODE)
                     Isis.ISISMEMBERS.Watch[Isis.MY_MASTER] += (Watcher)delegate(int ev) { throw new IsisException("master termination"); };
+                IsisSystem.ThreadTerminationMagic();
             });
             t.Start();
             t.Join();
@@ -3950,8 +3981,7 @@ namespace Isis
         public static void BatchStart(Address[] workers)
         {
             Address OracleLeader = Isis.ClientOf;
-            if (OracleLeader == null)
-                OracleLeader = Isis.ORACLE.theView.members[0];
+            OracleLeader = OracleLeader ?? Isis.ORACLE.theView.members[0];
             foreach (Address worker in workers)
                 Isis.SendInitialOracleLeaderInfo(worker, OracleLeader);
             Group.multiJoin(workers, new Group[] { Isis.ISISMEMBERS });
@@ -4027,7 +4057,7 @@ namespace Isis
         /// </summary>
         public static void Shutdown()
         {
-            Shutdown("Isis Shutdown");
+            Shutdown(null);
         }
 
         internal volatile static bool shuttingDown = false;
@@ -4045,27 +4075,103 @@ namespace Isis
                     return;
                 shuttingDown = true;
             }
-            Isis.WriteLine(s);
-#if EXTRACTCALLSTACKS
-            Isis.WriteLine("... called from " + Isis.ExtractStackTrace());
-#endif // EXTRACTCALLSTACKS
-            Isis.CloseLog();
-            IsisActive = false;
+            if (s != null)
+                Isis.WriteLine(s);
             List<Group> GClone = new List<Group>();
             using (new LockAndElevate(Group.IsisGroupsLock))
                 foreach (Group g in Group.IsisGroups)
                     GClone.Add(g);
-            foreach (Group g in GClone)
-                g.InterruptAggregationWaits();
-            BoundedBuffer.ShutDown();
-            MCMDSocket.Shutdown();
-            ReliableSender.Shutdown();
-            ReliableSender.toResendSema.Release(1);
-            ILock.Shutdown();
+            if (Isis.ClientOf != null)
+                FDInform(Isis.ClientOf);
+            else if (Isis.ORACLE != null && Isis.ORACLE.HasFirstView)
+            {
+                foreach (Address a in Isis.ORACLE.theView.members)
+                    if (!a.isMyAddress())
+                    {
+                        FDInform(a);
+                        break;
+                    }
+            }
+            IsisActive = false;
+            try
+            {
+                try
+                {
+                    foreach (Group g in GClone)
+                        if ((g.flags & Group.G_ISLARGE) != 0)
+                            g.InterruptAggregationWaits();
+                }
+                catch (IsisShutdown) { }
+                try
+                {
+                    BoundedBuffer.ShutDown();
+                }
+                catch (IsisShutdown) { }
+                try
+                {
+                    ReliableSender.Shutdown();
+                }
+                catch (IsisShutdown) { }
+                LockAndElevate.Disable(true);
+                try
+                {
+                    MCMDSocket.Shutdown();
+                }
+                catch (IsisShutdown) { }
+                try
+                {
+                    ReliableSender.toResendSema.Release(1);
+                }
+                catch (IsisShutdown) { }
+                try
+                {
+                    ILock.Shutdown();
+                }
+                catch (IsisShutdown) { }
+                try
+                {
+                    Isis.CloseLog();
+                }
+                catch (IsisShutdown) { }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("While attempting to shut down Isis, threw " + e);
+            }
+        }
+
+        internal static void CheckLocksHeld()
+        {
+            GC.WaitForPendingFinalizers();
+            if ((IsisSystem.Debug & IsisSystem.LOCKSTATE) != 0)
+            {
+                string s = LockObject.LocksIHold();
+                if (s.Equals(" "))
+                    return;
+                LockAndElevate.Disable(true);
+                Isis.WriteLine("=>=> CAUGHT SHUTDOWN EXCEPTION IN THREAD " + (Thread.CurrentThread.Name ?? "unnamed") + " BUT STILL HOLDING LOCKS { " + s + " }<==<==");
+                LockAndElevate.Disable(false);
+            }
+        }
+
+        internal static void ThreadTerminationMagic()
+        {
+            GC.WaitForPendingFinalizers();
+        }
+
+        // Attempt to trigger a very rapid failure notification
+        internal static void FDInform(Address who)
+        {
+            if (Isis.ClientOf != null)
+                Isis.ORACLE.doP2PSend(who, true, Isis.FDETECTION, Isis.my_address);
+            else
+                Isis.ORACLE.doSend(false, false, Isis.FDETECTION, Isis.my_address);
         }
 
         internal static void GotPoison(string why)
         {
+            if (shuttingDown)
+                return;
             IsisSystem.WriteAckInfo();
             Shutdown("Got poison (reason=\"" + why + "\") in " + IsisSystem.GetState());
             throw new IsisShutdown("poison");
@@ -4694,8 +4800,7 @@ namespace Isis
             /// </exclude>
             public static myHandlers operator +(myHandlers a, Delegate b)
             {
-                if (a == null)
-                    a = new myHandlers();
+                a = a ??  new myHandlers();
                 a.hList.Add(new CallBack(false, b));
                 return a;
             }
@@ -4707,8 +4812,7 @@ namespace Isis
             /// </exclude>
             public static myHandlers operator +(myHandlers a, CallBack b)
             {
-                if (a == null)
-                    a = new myHandlers();
+                a = a ?? new myHandlers();
                 a.hList.Add(b);
                 return a;
             }
@@ -4729,8 +4833,7 @@ namespace Isis
             /// </exclude>
             public static myWatches operator +(myWatches a, Watcher b)
             {
-                if (a == null)
-                    a = new myWatches();
+                a = a ?? new myWatches();
                 a.hList.Add(b);
                 return a;
             }
@@ -4741,8 +4844,7 @@ namespace Isis
             /// </exclude>
             public static myWatches operator -(myWatches a, Watcher b)
             {
-                if (a == null)
-                    a = new myWatches();
+                a = a ?? new myWatches();
                 a.hList.Remove(b);
                 return a;
             }
@@ -4901,8 +5003,7 @@ namespace Isis
             MakeChkpt = new ChkptMkr(this);
             LoadChkpt = new ChkptLdr(this);
             Initializer = new Initer(this);
-            if ((this.gname = gname) == null)
-                this.gname = "<unknown>";
+            this.gname = gname ?? "<unknown>";
             this.gaddr = gaddr;
             using (new LockAndElevate(Group.GroupRIPLock))
                 if (Group.GroupRIPList.Contains(gaddr))
@@ -4920,8 +5021,8 @@ namespace Isis
                     if (g.gname.Equals(gname) || g.gaddr.Equals(gaddr) || g == this)
                         throw new IsisException("AddToGroupsList(" + gname + "/" + gaddr + "): but this group name or gaddr already exists (" + g.gname + "/" + g.gaddr + ")");
                 // These need to be big enough to deal with arriving fragmented messages, which can create big bursty loads
-                incomingSends = new BoundedBuffer(gname + ":DeliverInOrder(IPMC)", 10240, ILock.LLDELIVERY, -1, -1);
-                incomingP2P = new BoundedBuffer(gname + ":DeliverInOrder(P2P)", 10240, ILock.LLDELIVERY, -1, -1);
+                incomingSends = new BoundedBuffer(gname + ":DeliverInOrder(IPMC)", 512, ILock.LLDELIVERY, -1, -1);
+                incomingP2P = new BoundedBuffer(gname + ":DeliverInOrder(P2P)", 512, ILock.LLDELIVERY, -1, -1);
                 IsisGroups.Add(this);
             }
         }
@@ -5428,6 +5529,7 @@ namespace Isis
                         if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
                             Isis.WriteLine("PROPOSE: doReply normal case (processed " + rvds.Length + " view deltas), curMsg=" + getReplyTo());
                         doReply(Isis.my_address, rvds);
+                        IsisSystem.ThreadTerminationMagic();
                     });
                     SetReplyThread(t);
                     t.Priority = ThreadPriority.Highest;
@@ -5506,19 +5608,6 @@ namespace Isis
                     throw new IsisException("Received LGCOMMIT in group <" + gname + ">, but this group isn't large!");
                 if (vds.Length > 0)
                     gotNewViewDeltas(vds);
-                List<KeyValuePair<SUTW, Msg>> lblist = new List<KeyValuePair<SUTW, Msg>>();
-                using (new LockAndElevate(SSLock))
-                {
-                    KeyValuePair<SUTW, Msg> listItem;
-                    while ((listItem = SSList.ElementAtOrDefault(0)).Value != null)
-                    {
-                        SSList.Remove(listItem.Key);
-                        lblist.Add(listItem);
-                    }
-                }
-                foreach (KeyValuePair<SUTW, Msg> listItem in lblist)
-                    ReliableSender.LoopBack(Msg.ISLOOPBACK, gaddr, listItem.Key.Sender, 0, new Msg(listItem.Value));
-                gotNewViewDeltas(vds);
                 if (theToken != null)
                 {
                     theToken.logicalClock++;
@@ -5542,6 +5631,18 @@ namespace Isis
                         }
                 }
                 Isis.Proposed = null;
+                List<KeyValuePair<SUTW, Msg>> lblist = new List<KeyValuePair<SUTW, Msg>>();
+                using (new LockAndElevate(SSLock))
+                {
+                    KeyValuePair<SUTW, Msg> listItem;
+                    while ((listItem = SSList.ElementAtOrDefault(0)).Value != null)
+                    {
+                        SSList.Remove(listItem.Key);
+                        lblist.Add(listItem);
+                    }
+                }
+                foreach (KeyValuePair<SUTW, Msg> listItem in lblist)
+                    ReliableSender.LoopBack(Msg.ISLOOPBACK, gaddr, listItem.Key.Sender, 0, new Msg(listItem.Value));
                 if ((IsisSystem.Debug & (IsisSystem.GROUPEVENTS | IsisSystem.TOKENLOGIC)) != 0)
                     Isis.WriteLine("Done with the LGCOMMIT message in group  " + gname);
             });
@@ -5563,16 +5664,17 @@ namespace Isis
                     for (int i = 0; i < hisRank - 1; i++)
                         if (theView.hasFailed[i] == false)
                             Isis.NodeHasFailed(theView.members[i], "(from INQUIRE)", true);
-                    Isis.ViewDelta[] proposed = Isis.Proposed;
-                    if (proposed == null) proposed = new Isis.ViewDelta[0]; if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
+                    Isis.ViewDelta[] proposed = Isis.Proposed ?? new Isis.ViewDelta[0]; 
+                    if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
                         Isis.WriteLine("Reply to INQUIRE request in group  " + gname + "  with " + proposed.Length + " events");
-                    doReply(Isis.my_address, proposed);
+                    doReply(Isis.my_address, Isis.ORACLE.theView.members[0], proposed);
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 SetReplyThread(t);
                 t.Start();
             });
 
-            doRegister(Isis.INITIALVIEW, (OracleMemberInitializer)delegate(Address sender, string[] names, Address[] gaddrs, long[] tsigs, View[] vs, bool[] isl, int[,] mms)
+            doRegister(Isis.INITIALVIEW, (OracleMemberInitializer)delegate(Address sender, string[] names, Address[] gaddrs, long[] tsigs, View[] vs, bool[] isl, int[,] mms, Address[] CBMs)
             {
                 IsisSystem.IsisRestarting = false;
                 if ((IsisSystem.Debug & (IsisSystem.GROUPEVENTS | IsisSystem.STARTSEQ | IsisSystem.MCMDMAP)) != 0)
@@ -5586,12 +5688,16 @@ namespace Isis
                 }
                 if (Isis.ClientOf != null)
                     throw new IsisException("ORACLE initial-view event unexpected when in client-of mode");
+                using (new LockAndElevate(Isis.CanBeOracleListLock))
+                    foreach (Address a in CBMs)
+                        Isis.CanBeOracleList.Add(a);
                 for (int i = 0; i < names.Length; i++)
                 {
                     Group g;
                     if (names[i].Equals("ORACLE"))
                     {
                         g = Isis.ORACLE;
+                        Isis.LeaderId = vs[i].leaderId;
                         if (g.HasFirstView == false || g.theView.viewid < vs[i].viewid)
                         {
                             g.NewView(vs[i], "ORACLE", new int[2] { mms[i, MCMDSocket.VIRTUAL], mms[i, MCMDSocket.PHYSICAL] });
@@ -5602,9 +5708,7 @@ namespace Isis
                     }
                     else
                     {
-                        g = Group.TrackingProxyLookup(gaddrs[i]);
-                        if (g == null)
-                            g = Group.TrackingProxy(names[i], "INITIALVIEW[]", gaddrs[i], tsigs[i], null, vs[i], isl[i] ? G_ISLARGE : 0, false);
+                        g = Group.TrackingProxyLookup(gaddrs[i]) ?? Group.TrackingProxy(names[i], "INITIALVIEW[]", gaddrs[i], tsigs[i], null, vs[i], isl[i] ? G_ISLARGE : 0, false);
                         if (g != null && (g.HasFirstView == false || g.theView.members.Length == 0 || g.theView.viewid <= vs[i].viewid))
                             g.NewView(vs[i], "view[] initializer", new int[2] { mms[i, MCMDSocket.VIRTUAL], mms[i, MCMDSocket.PHYSICAL] });
                     }
@@ -5618,7 +5722,11 @@ namespace Isis
             {
                 IsisSystem.IsisRestarting = false;
                 if ((flags & G_ISLARGE) != 0)
+                {
                     theView.NextIncomingMsgID[1] = initialSeqn;
+                    if (this == Isis.ISISMEMBERS)
+                        IPMCNewView(gaddr, theView);
+                }
                 if ((IsisSystem.Debug & IsisSystem.GROUPEVENTS) != 0)
                     Isis.WriteLine("Received a new single-group INITIALVIEW event in group " + gname + " from " + sender + ", View " + theView + ", with initialSeqn = " + initialSeqn);
                 if (Isis.SLAVE_MODE)
@@ -5667,7 +5775,7 @@ namespace Isis
                 else if (g != null)
                     g.GroupClose();
                 Isis.ClientOf = sender;
-                Isis.ORACLE = TrackingProxy("ORACLE", "Client-Of initializer", Isis.ORACLE.gaddr, 0, null, new View(Isis.ORACLE.gaddr, new Address[] { sender }, 0, (flags & G_ISLARGE) != 0), flags, false);
+                Isis.ORACLE = TrackingProxy("ORACLE", "Client-Of initializer", Isis.ORACLE.gaddr, 0, null, new View("ORACLE", Isis.ORACLE.gaddr, new Address[] { sender }, 0, (flags & G_ISLARGE) != 0), flags, false);
                 ILock.Barrier(ILock.LLWAIT, ILock.LCLIENTOF).BarrierRelease(1);
                 if ((IsisSystem.Debug & IsisSystem.STARTSEQ) != 0)
                     Isis.WriteLine("Finished in Isis.INITIALVIEW (client-of case): my state is " + IsisSystem.GetState());
@@ -5918,8 +6026,8 @@ namespace Isis
                     Thread.CurrentThread.Name = "<" + gname + "> incoming p2p delivery thread";
                     doDelivery(incomingP2P, "incomingP2P");
                 }
-                catch (IsisShutdown) { }
-                catch (ThreadAbortException) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             });
             groupP2PReaderThread.Start();
             groupIPMCReaderThread = new Thread(delegate()
@@ -5929,8 +6037,8 @@ namespace Isis
                     Thread.CurrentThread.Name = "<" + gname + "> incoming multicasts delivery thread";
                     doDelivery(incomingSends, "incomingSends");
                 }
-                catch (IsisShutdown) { }
-                catch (ThreadAbortException) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             });
             groupIPMCReaderThread.Start();
         }
@@ -6105,6 +6213,64 @@ namespace Isis
         internal bool[] DHTAgNonEmpty;
 
         /// <summary>
+        /// Delegate type for a DHTPutMethod
+        /// </summary>
+        /// <param name="key">The key, any object with a hash function will do</param>
+        /// <param name="value">Associated value</param>
+        public delegate void DHTPutMethod(object key, object value);
+        /// <summary>
+        /// Delegate type for a DHTGetMethod
+        /// </summary>
+        /// <param name="key">Key to look up</param>
+        /// <returns>Value, if any; null if not found</returns>
+        public delegate object DHTGetMethod(object key);
+        /// <summary>
+        /// Delegate type for a method that returns all known keys
+        /// </summary>
+        /// <returns></returns>
+        public delegate object[] DHTKeysMethod();
+
+        internal DHTPutMethod DHTWriter = delegate(object key, object value)
+        {
+            if ((IsisSystem.Debug & IsisSystem.DHTS) != 0)
+                Isis.WriteLine("DHT_PUT: kvp=<" + key + "::" + value + ">");
+            if (DHTContents.ContainsKey(key))
+                DHTContents.Remove(key);
+            DHTContents.Add(key, value);
+        };
+
+        internal DHTGetMethod DHTReader = delegate(object key)
+        {
+            if ((IsisSystem.Debug & IsisSystem.DHTS) != 0)
+                Isis.WriteLine("DHT_GET: key=<" + key + ">" + ((DHTContents.ContainsKey(key) ? " found (value=" + DHTContents[key] + ")" : " not found")));
+            if (DHTContents.ContainsKey(key))
+                return DHTContents[key];
+            else
+                return null;
+        };
+
+        internal DHTKeysMethod DHTKeys = delegate()
+        {
+            return DHTContents.Keys.ToArray();
+        };
+
+        /// <summary>
+        /// Allows a developer to create a DHT that stores its data in a non-standard way.  The default methods keep the DHT data in memory
+        /// </summary>
+        /// <param name="writerMethod"></param>
+        /// <param name="readerMethod"></param>
+        /// <param name="keysMethod"></param>
+        public void SetDHTPersistenceMethods(DHTPutMethod writerMethod, DHTGetMethod readerMethod, DHTKeysMethod keysMethod)
+        {
+            if (writerMethod != null)
+                DHTWriter = writerMethod;
+            if (readerMethod != null)
+                DHTReader = readerMethod;
+            if (keysMethod != null)
+                DHTKeys = keysMethod;
+        }
+
+        /// <summary>
         /// Puts the current group into DHT mode. 
         /// </summary>
         /// <param name="ReplicationFactor">Requested data replication factor</param>
@@ -6143,11 +6309,7 @@ namespace Isis
                 }
                 using (new LockAndElevate(DHTLock))
                 {
-                    if ((IsisSystem.Debug & IsisSystem.DHTS) != 0)
-                        Isis.WriteLine("DHT_PUT: kvp=<" + key + "::" + value + ">");
-                    if (DHTContents.ContainsKey(key))
-                        DHTContents.Remove(key);
-                    DHTContents.Add(key, value);
+                    DHTWriter(key, value);
                 }
             });
             doRegister(Isis.IM_DHT_GET, (IMRemDel)delegate(byte[] kba)
@@ -6156,14 +6318,16 @@ namespace Isis
                     kba = decipherBuf(kba);
                 object key = Msg.BArrayToObjects(kba)[0];
                 int khash = key.GetHashCode();
-                using (new LockAndElevate(DHTLock))
+                // Filter if not for my affinity group; shouldn't happen at all
+                if (GetAffinityGroup(khash) != GetAffinityGroup(Isis.my_address))
                 {
                     if ((IsisSystem.Debug & IsisSystem.DHTS) != 0)
-                        Isis.WriteLine("DHT_GET: key=<" + key + ">" + ((DHTContents.ContainsKey(key) ? " found (value=" + DHTContents[key] + ")" : " not found")));
-                    if (DHTContents.ContainsKey(key))
-                        doReply(DHTContents[key]);
-                    else
-                        doReply(new byte[0]);
+                        Isis.WriteLine("DHT_GET hander: filtering and ignoring a get to a different affinity group");
+                    return;
+                }
+                using (new LockAndElevate(DHTLock))
+                {
+                    doReply(DHTReader(key) ?? new byte[0]);
                 }
             });
             myDHTBinSize = ReplicationFactor;
@@ -6195,7 +6359,7 @@ namespace Isis
             });
             RegisterLoadChkpt((DHTChkptLoader)delegate(byte[] kba, byte[] vba)
             {
-                object[] keys = Msg.BArrayToObjects(kba);
+                object[] keys = DHTKeys();
                 object[] values = Msg.BArrayToObjects(vba);
                 for (int i = 0; i < keys.Length; i++)
                     DHTContents.Add(keys[i], values[i]);
@@ -6375,22 +6539,37 @@ namespace Isis
         {
             if (!Isis.ISIS_TCP_ONLY || Isis.ISISMEMBERS == null || !Isis.ISISMEMBERS.HasFirstView)
                 return "";
-            string ms = " ";
-            int myBase = Isis.ISISMEMBERS.theView.GetMyRank(), N = Isis.ISISMEMBERS.theView.members.Length;
-            for (int i = 1; i < Isis.ISISMEMBERS.theView.members.Length; i <<= 1)
-                ms += Isis.ISISMEMBERS.theView.members[(i + myBase) % N];
-            string s = "TCP_ONLY TUNNEL STATE for ISISMEMBERS::SkipList = [" + ms + "]; myBase=" + myBase + "]\r\n";
+            string ms = "";
+            View v;
+            using (new LockAndElevate(IPMCNewViewLock))
+                v = TunnelView;
+            int myBase = v.GetMyRank(), N = v.members.Length, sl = 0;
+            for (int i = 1; i < v.members.Length; i <<= 1)
+            {
+                ++sl;
+                ms += v.members[(i + myBase) % N];
+            }
             using (new LockAndElevate(hmLock))
+            {
+                string s = "TCP_ONLY TUNNEL STATE for ISISMEMBERS... gaddr=" + Isis.ISISMEMBERS.gaddr + " Tunneling with viewid= " + v.viewid + "{" + Address.ToString(v.members) + 
+                    "}::\r\n  SkipList = [" + ms + "]; myBase=" + myBase + ", hmInfo maps " + hmInfo.Count + " overlay groups\r\n";
                 foreach (KeyValuePair<Address, bool[]> kvp in hmInfo)
-                    s += "   " + kvp.Key + " => {" + PHMap(kvp.Value) + "}\r\n";
-            return s;
+                    s += "   " + kvp.Key + " => {" + PHMap(kvp.Value, sl) + "}\r\n";
+                return s;
+            }
         }
 
         private static string PHMap(bool[] hm)
         {
+            return PHMap(hm, int.MaxValue);
+        }
+
+        private static string PHMap(bool[] hm, int nb)
+        {
             string bs = " ";
             foreach (bool b in hm)
-                bs += (b ? "+" : "-") + " ";
+                if(nb-- > 0)
+                    bs += (b ? "+" : "-") + " ";
             return bs;
         }
 
@@ -6422,7 +6601,7 @@ namespace Isis
         internal static LockObject TunnelThreadsLock = new LockObject("TunnelThreadsLock");
         internal static Thread IPMCTunnelThread, UDPTunnelThread;
         internal static List<ddh> ddhList = new List<ddh>();
-        internal static LockObject ddhLock = new LockObject("ddhLock");
+        internal static LockObject ddhLock = new LockObject("ddhLock", ThreadPriority.AboveNormal);
         internal Semaphore ddhNotEmpty = new Semaphore(0, int.MaxValue);
         internal static List<gsdh> gsdhList = new List<gsdh>();
         internal static LockObject gsdhLock = new LockObject("gsdhLock");
@@ -6463,17 +6642,6 @@ namespace Isis
             {
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("UDP Tunnel event handler: got a new UDP packet tunnelling to dest=" + dest + ", data.Length=" + data.Length + ", hopcount is " + hopcnt);
-                View theView;
-                using (new LockAndElevate(ViewLock))
-                    theView = this.theView;
-                if (theView == null || hopcnt > log2(theView.members.Length) + 1)
-                {
-                    if ((IsisSystem.Debug & (IsisSystem.TUNNELING | IsisSystem.DISCARDS)) != 0)
-                        Isis.WriteLine("WARNING: Packet in an infinite loop in UDP tunnel");
-                    using (new LockAndElevate(IsisSystem.RTS.Lock))
-                        ++IsisSystem.RTS.Discarded;
-                    return;
-                }
                 using (new LockAndElevate(ddhLock))
                 {
                     ddhList.Add(new ddh(dest, data, hopcnt));
@@ -6507,6 +6675,7 @@ namespace Isis
                                     UDPTunnel(dh.dest, dh.data, dh.hopcnt + 1);
                                 }
                             }
+                            IsisSystem.ThreadTerminationMagic();
                         });
                         UDPTunnelThread.Start();
                     }
@@ -6517,25 +6686,13 @@ namespace Isis
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("IPMC Tunnel[ql=" + gsdhList.Count() + "] got a new incoming request: gaddr=" + gaddr + ", sender=" + sender + ", data length=" + data.Length + ", hopcnt=" + hopcnt);
 
-                View theView;
-                using (new LockAndElevate(this.ViewLock))
-                    theView = this.theView;
-                if (theView == null || hopcnt > log2(theView.members.Length) + 1)
-                {
-                    if ((IsisSystem.Debug & (IsisSystem.TUNNELING | IsisSystem.DISCARDS)) != 0)
-                        Isis.WriteLine("WARNING: Packet in an infinite loop in IPMC tunnel");
-                    using (new LockAndElevate(IsisSystem.RTS.Lock))
-                        ++IsisSystem.RTS.Discarded;
-                    return;
-                }
-                bool releaseIt = false;
+                View theView = null;
+                using (new LockAndElevate(TokenLock))
+                    if (this.theToken != null)
+                        theView = this.theToken.WorkingView;
                 using (new LockAndElevate(gsdhLock))
-                {
                     gsdhList.Add(new gsdh(gaddr, sender, data, hopcnt));
-                    releaseIt = true;
-                }
-                if (releaseIt)
-                    gsdhNotEmpty.Release(1);
+                gsdhNotEmpty.Release(1);
                 using (new LockAndElevate(TunnelThreadsLock))
                 {
                     if (IPMCTunnelThread == null)
@@ -6552,26 +6709,24 @@ namespace Isis
                                 IsisSystem.RTS.ThreadCntrs[7]++;
                                 gsdhNotEmpty.WaitOne(1000);
                                 using (new LockAndElevate(gsdhLock))
-                                {
                                     gdh = gsdhList.FirstOrDefault();
-                                    if (gdh != null)
-                                        gsdhList.Remove(gdh);
-                                }
                                 if (gdh != null)
                                 {
+                                    gsdhList.Remove(gdh);
                                     int ag = GetAffinityGrpIdx(gdh.gaddr);
                                     if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
-                                        Isis.WriteLine("IPMC Tunnel[ql=" + gsdhList.Count() + "]  event handler: gaddr=" + ((ag == -1) ? gdh.gaddr.ToString() : ("(affinity group " + ag + ")")) + ", sender=" + gdh.sender + ", data.Length=" + gdh.data.Length);
-                                    IPMCNextHops(gdh.gaddr, gdh.sender, gdh.hopcnt, (IMSendDel)delegate(Address nextHop, int pseudoDepth)
+                                        Isis.WriteLine("IPMC Tunnel[ql=" + gsdhList.Count() + "]  event handler: gaddr=" + gaddr + ((ag == -1) ? "" : ("(affinity group " + ag + ")")) + ", sender=" + gdh.sender + ", data.Length=" + gdh.data.Length);
+                                    IPMCNextHops(gdh.gaddr, gdh.sender, gdh.hopcnt, (IMSendDel)delegate(Address nextHop, int nToScan)
                                     {
                                         if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                                             Isis.WriteLine("IPMC Tunnel event handler: nextHop will be " + nextHop + " for  gaddr=" + ((ag == -1) ? gdh.gaddr.ToString() : ("(affinity group " + ag + ")")) + ", sender=" + gdh.sender + ", data.Length=" + gdh.data.Length);
-                                        Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gdh.gaddr, gdh.sender, gdh.data, pseudoDepth);
+                                        Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gdh.gaddr, gdh.sender, gdh.data, nToScan);
                                     });
                                     if ((ag == -1 && Group.doLookup(gdh.gaddr) != null) || (ag >= 0 && Isis.my_address.GetHashCode() % myDHTBinSize == ag))
                                         IPMCTunnelLoopback(gdh.gaddr, gdh.data);
                                 }
                             }
+                            IsisSystem.ThreadTerminationMagic();
                         });
                         IPMCTunnelThread.Start();
                     }
@@ -6595,7 +6750,8 @@ namespace Isis
                         IPMCViewCast(vi.IMVid, vi.gaddr, vi.sender, vi.v);
                     }
                 }
-                catch (IsisShutdown) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             }).Start();
 
             doRegister(Isis.IM_IPMC_TUNNEL, (IMMCNVDel)delegate(int IMVid, Address gaddr, Address sender, int hopcnt, View v)
@@ -6605,9 +6761,9 @@ namespace Isis
                 else if (!Isis.ISISMEMBERS.HasFirstView || Isis.ISISMEMBERS.theView.viewid < IMVid)
                     using (new LockAndElevate(Isis.ISISMEMBERS.ViewLock))
                         Isis.ISISMEMBERS.stashedIPMCviews.Add(new IPMCVinfo(IMVid, gaddr, sender, v));
-                IPMCNextHops(gaddr, sender, hopcnt, (IMSendDel)delegate(Address nextHop, int pseudoDepth)
+                IPMCNextHops(gaddr, sender, hopcnt, (IMSendDel)delegate(Address nextHop, int nToScan)
                 {
-                    Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gaddr, sender, pseudoDepth, v);
+                    Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gaddr, sender, nToScan, v);
                 });
             });
 
@@ -6638,7 +6794,8 @@ namespace Isis
                     Thread.CurrentThread.Name = "ReplayStashedVinfo";
                     foreach (IPMCVinfo vi in toReplay)
                         IPMCViewCast(vi.IMVid, vi.gaddr, vi.sender, vi.v);
-                });
+                    IsisSystem.ThreadTerminationMagic();
+                }).Start();
         }
 
         // Just sends directly 
@@ -6655,21 +6812,24 @@ namespace Isis
             internal ShortCutInfo(Address w, Address g) { who = w; gaddr = g; }
         }
 
-        internal List<ShortCutInfo> AllShortCuts = new List<ShortCutInfo>();
-        internal LockObject ShortCutsLock = new LockObject("ShortCutsLock");
+        internal static List<ShortCutInfo> AllShortCuts = new List<ShortCutInfo>();
+        internal static LockObject ShortCutsLock = new LockObject("ShortCutsLock", ThreadPriority.Highest);
         internal Dictionary<Address, bool> ShortCuts = new Dictionary<Address, bool>();
 
         internal void UpdateShortCuts(View v)
         {
-            using (new LockAndElevate(ShortCutsLock))
+            List<ShortCutInfo> scl = new List<ShortCutInfo>();
+            Group g = Group.doLookup(v.gaddr);
+            if (g == null)
+                return;
+            if (g == Isis.ORACLE && Isis.ClientOf == null)
             {
-                List<ShortCutInfo> asc = new List<ShortCutInfo>();
-                foreach (ShortCutInfo sci in AllShortCuts)
-                    if (!sci.gaddr.Equals(v.gaddr))
-                        asc.Add(sci);
-                Group g = Group.Lookup(v.gaddr);
-                if (g == null)
-                    return;
+                foreach (Address a in g.theView.members)
+                    if (!a.isMyAddress())
+                        scl.Add(new ShortCutInfo(a, g.gaddr));
+            }
+            else
+            {
                 tokenInfo theToken;
                 using (new LockAndElevate(g.TokenLock))
                     theToken = g.theToken;
@@ -6678,24 +6838,77 @@ namespace Isis
                     for (int level = 0; level < theToken.nlevels; level++)
                     {
                         if (theToken.next[level] != null && !theToken.next[level].isMyAddress())
-                            asc.Add(new ShortCutInfo(theToken.next[level], v.gaddr));
+                            scl.Add(new ShortCutInfo(theToken.next[level], v.gaddr));
                         if (theToken.last[level] != null && !theToken.last[level].isMyAddress())
-                            asc.Add(new ShortCutInfo(theToken.last[level], v.gaddr));
+                            scl.Add(new ShortCutInfo(theToken.last[level], v.gaddr));
                     }
                 }
-                if (!v.members[0].isMyAddress())
-                    asc.Add(new ShortCutInfo(v.members[0], v.gaddr));
-                AllShortCuts = asc;
+            }
+            using (new LockAndElevate(ShortCutsLock))
+            {
                 ShortCuts = new Dictionary<Address, bool>();
-                foreach (ShortCutInfo sci in asc)
+                foreach (ShortCutInfo sci in scl)
                     if (!ShortCuts.ContainsKey(sci.who))
                         ShortCuts.Add(sci.who, true);
+                foreach (ShortCutInfo sci in AllShortCuts)
+                    if (!sci.gaddr.Equals(v.gaddr))
+                        scl.Add(sci);
+                AllShortCuts = scl;
             }
         }
+
+        internal static bool notNeeded(Address dest)
+        {
+            if (Isis.IAmOracle && Isis.ORACLE.IAmLeader() && (Isis.ISISMEMBERS.theToken == null || Isis.ISISMEMBERS.theToken.WorkingView == null || Isis.ISISMEMBERS.theToken.WorkingView.GetRankOf(dest) == -1))
+                return false;
+            using (new LockAndElevate(ShortCutsLock))
+            {
+                foreach (ShortCutInfo si in AllShortCuts)
+                    if (si.who.Equals(dest))
+                        return false;
+            }
+            List<Group> ag = IsisAllGroupsClone();
+            foreach(Group g in ag)
+                if (!g.isTrackingProxy && (g.flags & G_ISLARGE) != 0)
+                {
+                    View theView;
+                    using (new LockAndElevate(g.TokenLock))
+                        if (g.theToken == null)
+                            continue;
+                        else
+                            theView = g.theToken.WorkingView;
+                    int myRank = theView.GetMyRank(), N = theView.members.Length;
+                    for (int m = 1; m < theView.members.Length; m <<= 1)
+                        if (dest.Equals(theView.members[(m + myRank) % N]))
+                            return false;
+                }
+            return true;
+        }
+
 
         // Sends but "jiggers" the route for retransmission attempts
         internal void UDPTunnel(Address dest, int jigger, byte[] data, int hopcnt)
         {
+            if (hopcnt > 10)
+            {
+                if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
+                    Isis.WriteLine("WARNING: Discarding a packet in UDPTunnel: hopcnt>10");
+                using (new LockAndElevate(IsisSystem.RTS.Lock))
+                    ++IsisSystem.RTS.Discarded;
+                return;
+            }
+            View v = null;
+            using (new LockAndElevate(Isis.ISISMEMBERS.TokenLock))
+                if (Isis.ISISMEMBERS.theToken != null)
+                    v = Isis.ISISMEMBERS.theToken.WorkingView;
+            if (v == null)
+            {
+                if((IsisSystem.Debug&IsisSystem.DISCARDS) != 0)
+                    Isis.WriteLine("WARNING: Discarding a packet in UDPTunnel: the working view is null");
+                using (new LockAndElevate(IsisSystem.RTS.Lock))
+                    ++IsisSystem.RTS.Discarded;
+                return;
+            }
             if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                 Isis.WriteLine("UDP Tunnel sender method: dest=" + dest + ", jigger=" + jigger + " data length=" + data.Length);
             if (dest.isMyAddress())
@@ -6705,13 +6918,13 @@ namespace Isis
                 IPMCTunnelLoopback(gaddr, data);
                 return;
             }
-            if ((Isis.ISIS_TCP_ONLY && ReliableSender.TCPSendIfKnown(dest, data, ReliableSender.RECVBB)) || theView == null)
+            if ((Isis.ISIS_TCP_ONLY && ReliableSender.TCPSendIfKnown(dest, data, ReliableSender.RECVBB)) || v == null)
             {
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("UDP Tunnel: dest was known, sent directly");
                 return;
             }
-            int mybaseRank = theView.GetMyRank(), destRank = theView.GetRankOf(dest), N = theView.members.Length;
+            int mybaseRank = v.GetMyRank(), destRank = v.GetRankOf(dest), N = v.members.Length;
             if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                 Isis.WriteLine("MybaseRank=" + mybaseRank + ", destRank=" + destRank + ", N=" + N);
             // This next line is the core of the UDP emulation layer, and what we do is to forward the packet
@@ -6754,14 +6967,14 @@ namespace Isis
             if (mybaseRank == -1 || destRank == -1 || trueTargetOffset == (1 << l2OfTrueOffset) || isShortCut)
             {
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
-                    Isis.WriteLine("UDPSend: dest=" + dest + ", mybaseRank=" + mybaseRank + ", destRank=" + destRank + ", using direct TCPSendTo");
+                    Isis.WriteLine("UDPTunnel... ReliableSender.P2PSend: dest=" + dest + ", mybaseRank=" + mybaseRank + ", destRank=" + destRank + ", using direct TCPSendTo");
                 ReliableSender.P2PSend(dest, dest.p2pPort, data, ReliableSender.RECVBB);
                 return;
             }
             if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
-                Isis.WriteLine("dest= " + dest + "... computed target " + theView.members[(mybaseRank + selectedTargetOffset) % N] + ", using mybaseRank=" + mybaseRank + ", destRank=" + destRank + ", N=" + N +
+                Isis.WriteLine("UDPTunnel.... ReliableSender.doP2PSend: dest= " + dest + "... computed target " + v.members[(mybaseRank + selectedTargetOffset) % N] + ", using mybaseRank=" + mybaseRank + ", destRank=" + destRank + ", N=" + N +
                     ", trueTargetOffset=" + trueTargetOffset + ", l2ofTrueTargetOffset=" + l2OfTrueOffset + ", selectedTargetOffset=" + selectedTargetOffset);
-            Address target = theView.members[(mybaseRank + selectedTargetOffset) % N];
+            Address target = v.members[(mybaseRank + selectedTargetOffset) % N];
             doP2PSend(target, true, Isis.IM_UDP_TUNNEL, dest, data, hopcnt);
         }
 
@@ -6771,11 +6984,11 @@ namespace Isis
                 Isis.WriteLine("IPMC Tunnel sender method: gaddr=" + gaddr + ", data.Length=" + data.Length);
             if (Group.doLookup(gaddr) != null)
                 IPMCTunnelLoopback(gaddr, data);
-            IPMCNextHops(gaddr, Isis.my_address, 0, (IMSendDel)delegate(Address nextHop, int pseudoDepth)
+            IPMCNextHops(gaddr, Isis.my_address, Int32.MaxValue, (IMSendDel)delegate(Address nextHop, int nToScan)
             {
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("IPMC Tunnel next hop will be via " + nextHop + " for message to gaddr=" + gaddr + ", data.Length=" + data.Length);
-                Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gaddr, Isis.my_address, data, pseudoDepth);
+                Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, gaddr, Isis.my_address, data, nToScan);
             });
         }
 
@@ -6786,10 +6999,11 @@ namespace Isis
 
         internal static void IPMCViewCast(int IMVid, Address gaddr, Address sender, View v)
         {
-            View IMv;
-            using (new LockAndElevate(Isis.ISISMEMBERS.ViewLock))
-                IMv = Isis.ISISMEMBERS.theView;
-            if (IMv.viewid != IMVid)
+            View IMv = null;
+            using (new LockAndElevate(Isis.ISISMEMBERS.TokenLock))
+                if(Isis.ISISMEMBERS.theToken != null)
+                    IMv = Isis.ISISMEMBERS.theToken.WorkingView;
+            if (IMv == null || IMv.viewid != IMVid)
                 return;
             if (gaddr.Equals(Isis.ISISMEMBERS.gaddr))
             {
@@ -6811,28 +7025,53 @@ namespace Isis
             if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                 Isis.WriteLine("IPMCViewCast[" + Isis.my_address + "]: gaddr=" + gaddr + ", sender=" + sender + ", View=" + v);
             IPMCNewView(gaddr, v);
-            IPMCNextHops(gaddr, sender, 0, (IMSendDel)delegate(Address nextHop, int pseudoDepth)
+            IPMCNextHops(gaddr, sender, Int32.MaxValue, (IMSendDel)delegate(Address nextHop, int nToScan)
             {
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("IPMCViewCast[" + Isis.my_address + "] next hop will be via " + nextHop + " for gaddr=" + gaddr + ", sender=" + sender + ", View=" + v);
-                Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, IMv.viewid, gaddr, sender, pseudoDepth, v);
+                if (nextHop.Equals(sender))
+                    throw new IsisException("IPMCNextHops: trying to forward back to the originator of a multicast!");
+                Isis.ISISMEMBERS.doP2PSend(nextHop, true, Isis.IM_IPMC_TUNNEL, IMv.viewid, gaddr, sender, nToScan, v);
             });
         }
 
         // This guy does a callback to the designated action routine for each next hop the data should take
-        internal static void IPMCNextHops(Address gaddr, Address sender, int pseudoDepth, IMSendDel action)
+        internal static void IPMCNextHops(Address gaddr, Address sender, int nToScan, IMSendDel action)
         {
+            if (nToScan > 20)
+            {
+                if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
+                    Isis.WriteLine("WARNING: Discarding a packet in UDPTunnel: nToScan>20");
+                using (new LockAndElevate(IsisSystem.RTS.Lock))
+                    ++IsisSystem.RTS.Discarded;
+                return;
+            }
             if (!Isis.ISISMEMBERS.HasFirstView)
                 return;
-            View v = Isis.ISISMEMBERS.theView;
-            int myBase = v.GetMyRank();
+            View v = null;
+            using (new LockAndElevate(Isis.ISISMEMBERS.TokenLock))
+                if (Isis.ISISMEMBERS.theToken != null)
+                    v = Isis.ISISMEMBERS.theToken.WorkingView;
+            if (v == null)
+            {
+                if((IsisSystem.Debug&IsisSystem.DISCARDS) != 0)
+                    Isis.WriteLine("WARNING: Discarding a packet in IPMCNextHops: the working view is null");
+                using (new LockAndElevate(IsisSystem.RTS.Lock))
+                    ++IsisSystem.RTS.Discarded;
+                return;
+            }
+            int myBase = v.GetMyRank(), sbase = v.GetRankOf(sender);
             int N = v.members.Length, ag = Isis.ISISMEMBERS.GetAffinityGrpIdx(gaddr);
+            if (sbase <= myBase)
+                sbase += N;
             bool[] hm = null, hmm = null;
             if (gaddr.Equals(Isis.ISISMEMBERS.gaddr))
             {
                 hm = new bool[log2(v.members.Length) + 1];
                 // With each hop deeper into the tree, halve the link span that we'll look at
-                for (int b = 0; b < hm.Length - pseudoDepth; b++)
+                if (nToScan > hm.Length)
+                    nToScan = hm.Length;
+                for (int b = 0; b < nToScan; b++)
                     hm[b] = true;
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("IPMC Tunnel: dest is ISISMEMBERS, setting hm = {" + PHMap(hm) + "}");
@@ -6840,9 +7079,10 @@ namespace Isis
             else if (ag >= 0)
             {
                 hm = new bool[Isis.ISISMEMBERS.myDHTBinSize];
-                for (int b = 0; b < hm.Length - pseudoDepth; b++)
-                    if (gaddr.Equals(Isis.ISISMEMBERS))
-                        hm[b] = Isis.ISISMEMBERS.DHTHMaps[ag, b];
+                if (nToScan > hm.Length)
+                    nToScan = hm.Length;
+                for (int b = 0; b < nToScan; b++)
+                    hm[b] = Isis.ISISMEMBERS.DHTHMaps[ag, b];
                 if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
                     Isis.WriteLine("IPMC Tunnel: is an artificial DHT affinity subgroup with hm = {" + PHMap(hm) + "}");
             }
@@ -6853,14 +7093,16 @@ namespace Isis
                 if (hmm != null)
                 {
                     hm = new bool[hmm.Length];
-                    for (int b = 0; b < hmm.Length - pseudoDepth; b++)
+                    if (nToScan > hm.Length)
+                        nToScan = hm.Length;
+                    for (int b = 0; b < nToScan; b++)
                         hm[b] = hmm[b];
                 }
             }
             if (hm == null || myBase == -1)
             {
                 if ((IsisSystem.Debug & (IsisSystem.TUNNELING | IsisSystem.DISCARDS)) != 0)
-                    Isis.WriteLine("WARNING: IPMC tunnel ignoring a packet with gaddr=" + gaddr + ", sender=" + sender + ", pseudoDepth=" + pseudoDepth + " (couldn't find the group, or my own rank)");
+                    Isis.WriteLine("WARNING: IPMC tunnel ignoring a packet with gaddr=" + gaddr + ", sender=" + sender + ", pseudoDepth=" + nToScan + " (couldn't find the group, or my own rank)");
                 using (new LockAndElevate(IsisSystem.RTS.Lock))
                     IsisSystem.RTS.Discarded++;
                 return;
@@ -6875,19 +7117,40 @@ namespace Isis
             //
             // Next level down repeats this idea
             // So we get a kind of tree: shallow on its left, log2(N) deep if we follow its extreme right side to the bottom
+            // Any given multicast always tracks down the binary tree that we saw "looking down" from its sender (the root)
             //
-            // Surprisingly, the actual rule used is pretty simple looking, until you try and visualize its distributed behavior!
+            // Surprisingly, the actual rule used is pretty simple, once you visualize it this way
+            //
+            if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
+            {
+                string slist = " ";
+                for (int i = 1; i < v.members.Length; i <<= 1)
+                    slist += v.members[(myBase + i) % N];
+                Isis.WriteLine("IPMC Tunnel: gaddr=" + gaddr + ", sender=" + sender + ", myBase=" + myBase + ", sbase=" + sbase + ", nToScan=" + nToScan +
+                    ", v.members=" + Address.ToString(v.members) + ", hm = {" + PHMap(hm) + "} in skiplist= {" + slist + "}");
+            }
             for (int k = 0; k < hm.Length; k++)
                 if (hm[k])
-                    action(v.members[(myBase + (1 << k)) % N], pseudoDepth + 1);
+                {
+                    if ((myBase + (1 << k)) < sbase)
+                    {
+                        if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
+                            Isis.WriteLine("IPMC Tunnel: Sending a copy to v.members[" + (1 << k) + "]=" + v.members[(myBase + (1 << k)) % N]);
+                        action(v.members[(myBase + (1 << k)) % N], k);
+                    }
+                }
         }
 
         internal static LockObject IPMCNewViewLock = new LockObject("IPMCNewViewLock");
+        internal static View TunnelView;
         internal static void IPMCNewView(Address gaddr, View v)
         {
             using (new LockAndElevate(IPMCNewViewLock))
                 if (gaddr.Equals(Isis.ISISMEMBERS.gaddr))
                 {
+                    if (TunnelView != null && v.viewid <= TunnelView.viewid)
+                        return;
+                    TunnelView = v;
                     // ISISMEMBERS view changed: recompute everything
                     Dictionary<Address, bool[]> oldhmInfo;
                     using (new LockAndElevate(hmLock))
@@ -6900,9 +7163,7 @@ namespace Isis
                     {
                         if (kvp.Key.Equals(gaddr))
                             continue;
-                        Group g = Group.Lookup(kvp.Key);
-                        if (g == null)
-                            g = TrackingProxyLookup(kvp.Key);
+                        Group g = Group.Lookup(kvp.Key) ?? TrackingProxyLookup(kvp.Key);
                         if (g != null && g.HasFirstView)
                             doIPMCNewView(kvp.Key, g.theView);
                     }
@@ -6915,7 +7176,7 @@ namespace Isis
         // from me to the guy at offset 2^k to my right, for k=0...log2(N), false if not
         internal static void doIPMCNewView(Address gaddr, View v)
         {
-            int myBase = Isis.ISISMEMBERS.theView.GetMyRank(), N = Isis.ISISMEMBERS.theView.members.Length;
+            int myBase = v.GetMyRank(), N = v.members.Length;
             if (myBase == -1)
             {
                 using (new LockAndElevate(hmLock))
@@ -6927,7 +7188,7 @@ namespace Isis
             foreach (Address m in v.members)
                 if (!m.isMyAddress())
                     for (int rankOf = 0; rankOf < N; rankOf++)
-                        if (m.Equals(Isis.ISISMEMBERS.theView.members[(rankOf + myBase) % N]))
+                        if (m.Equals(v.members[(rankOf + myBase) % N]))
                         {
                             hasMembers[log2(rankOf)] = true;
                             break;
@@ -7098,6 +7359,7 @@ namespace Isis
                         {
                             OneByOne.Release(1);
                         }
+                        IsisSystem.ThreadTerminationMagic();
                     }).Start();
             }
             finally
@@ -7403,7 +7665,7 @@ namespace Isis
             }
             catch
             {
-                return "Unable to print state of group " + (gname == null ? "(name unknown)" : gname);
+                return "Unable to print state of group " + (gname ?? "(name unknown)");
             }
         }
 
@@ -7533,13 +7795,11 @@ namespace Isis
                 MsgArrivedEarly = null;
                 MCMDSocket.drainIPMCArrivedEarly(ae);
                 drainMsgArrivedEarly(mae);
-                UpdateShortCuts(v);
                 if (v.members.Length == 0)
                     using (new LockAndElevate(TPGroupsLock))
                         TPGroups.Remove(this);
                 return;
             }
-
             if (HasFirstView == false)
             {
                 if (gname.Equals("ORACLE") == false && v.GetMyRank() == -1)
@@ -7652,6 +7912,7 @@ namespace Isis
                                     using (new LockAndElevate(IsisSystem.RTS.Lock))
                                         ++IsisSystem.RTS.Discarded;
                                 }
+                    IsisSystem.ThreadTerminationMagic();
                 }).Start();
             if (durabilityMethod != null)
             {
@@ -7662,8 +7923,8 @@ namespace Isis
             replayStash(this);
             theView.isFinal = false;
             GroupOpen = true;
-            if (isTrackingProxy == false)
-                ReliableSender.resetTheToken(this);
+            ReliableSender.resetTheToken(this);
+            UpdateShortCuts(v);
 
             if ((IsisSystem.Debug & (IsisSystem.VIEWCHANGE | IsisSystem.VIEWWAIT)) != 0)
                 Isis.WriteLine("Releasing LLINITV barrier lock for gaddr " + gaddr + "(Lock [" + ILock.LLINITV + "][" + ILock.GetLockId(ILock.LLINITV, gaddr.GetHashCode()) + "])");
@@ -7682,6 +7943,7 @@ namespace Isis
                 Thread.CurrentThread.Priority = ThreadPriority.AboveNormal;
                 foreach (ReliableSender.MReplayMe m in mae)
                     ReliableSender.GotIncoming(m.type, m.gaddr, m.sender, m.minStable, m.msg, false);
+                IsisSystem.ThreadTerminationMagic();
             }).Start();
         }
 
@@ -8418,9 +8680,9 @@ namespace Isis
                         myRank = rank;
                         theFileStream.Flush(true);
                         theFileStream.Close();
-#if !MONO_MODE
+#if !__MonoCS__
                         theFileStream.Dispose();
-#endif // !MONO_MODE
+#endif // !__MonoCS__
                         Thread.Sleep(50);
                         theFileStream = null;
                         if (rank == -1)
@@ -8525,6 +8787,7 @@ namespace Isis
                             }
                             catch (IsisShutdown) { return; }
                             catch (ThreadInterruptedException) { return; }
+                            IsisSystem.ThreadTerminationMagic();
                         });
                         theThread.Start();
                     }
@@ -8703,6 +8966,7 @@ namespace Isis
                         catch (IsisShutdown)
                         {
                         }
+                        IsisSystem.ThreadTerminationMagic();
                     }).Start();
                 }
             }
@@ -8860,7 +9124,8 @@ namespace Isis
 
         private static bool TypeMatch(object[] obs, CallBack cb)
         {
-            if (cb.cbProc.ptypes.Length != obs.Length - 1) return false;
+            if (cb.cbProc.ptypes.Length != obs.Length - 1)
+                return false;
             for (int i = 0; i < cb.cbProc.ptypes.Length; i++)
                 if (obs[i + 1] == null || !obs[i + 1].GetType().Equals(cb.cbProc.ptypes[i]))
                     return false;
@@ -9337,7 +9602,8 @@ namespace Isis
                     Thread.Sleep(1000);
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         internal static MCMDSocket.GRPair[] GroupRates()
@@ -9366,6 +9632,7 @@ namespace Isis
                 while (IsisSystem.IsisActive && (GroupOpen || !WasOpen))
                 {
                     IsisSystem.RTS.ThreadCntrs[10]++;
+                    Thread.Sleep(1000);
                     if (HasFirstView == false)
                     {
                         if (looped++ == 5)
@@ -9373,7 +9640,7 @@ namespace Isis
                             if ((IsisSystem.Debug & IsisSystem.STARTSEQ) != 0)
                                 Isis.WriteLine("ISIS ORACLE SERVICE: Restarted");
                             IsisSystem.IsisRestarting = false;
-                            View v = new View(Isis.ORACLE.gaddr, new Address[] { Isis.my_address }, 0, false);
+                            View v = new View("ORACLE", Isis.ORACLE.gaddr, new Address[] { Isis.my_address }, 0, false);
                             Isis.ORACLE.NewView(v, "ORACLE", null);
 
                             ReliableSender.StartGroupReader(Isis.ORACLE);
@@ -9436,10 +9703,10 @@ namespace Isis
                                 CleanUp.Add(a);
                         }
                     }
-                    Thread.Sleep(500);
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         // Ping him, unless something is already in the send queue or the send queue length is excessive
@@ -9520,7 +9787,8 @@ namespace Isis
                                 Thread.Sleep(sleepDelay);
                             }
                         }
-                        catch (IsisShutdown) { }
+                        catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                        IsisSystem.ThreadTerminationMagic();
                     });
                     RateThread.Name = "Group [" + gname + "]: Leaky bucket rate controller thread";
                     RateThread.Start();
@@ -11573,7 +11841,6 @@ namespace Isis
             if ((IsisSystem.Debug & (IsisSystem.REPLYWAIT | IsisSystem.VIEWCHANGE | IsisSystem.VIEWWAIT)) != 0)
                 Isis.WriteLine("Sending my query: group " + gname + " msgid " + m.vid + ":" + m.msgid + ", ri.wanted=" + ri.replies_wanted);
             AsyncSendQuery(m);
-            ILock.CheckReleased();
             if ((IsisSystem.Debug & (IsisSystem.REPLYWAIT | IsisSystem.VIEWCHANGE | IsisSystem.VIEWWAIT)) != 0)
                 Isis.WriteLine("After sending my query: group " + gname + " msgid " + m.vid + ":" + m.msgid + ".... Collecting the replies...");
             IsisRdv.rdvWait(ri, this, timeout);
@@ -11686,6 +11953,7 @@ namespace Isis
                     Isis.WriteLine("after multiQuery(" + qa.g.gname + "): index[" + qa.whoAmI + "] reply len " + ((qa.ba == null) ? qa.bap2p[qa.whoAmI].Count() : qa.ba[qa.whoAmI].Count()));
             }
             catch (IsisShutdown) { qa.ba[qa.whoAmI] = new List<byte[]>(); }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         internal bool ReplayActive = false;
@@ -11705,8 +11973,8 @@ namespace Isis
         {
             List<Msg> oldToDo = null;
             int vid = 0;
-            using (new LockAndElevate(ToDoLock))
             using (new LockAndElevate(ViewLock))
+            using (new LockAndElevate(ToDoLock))
                 if (theView != null)
                 {
                     oldToDo = ToDo;
@@ -11726,6 +11994,7 @@ namespace Isis
             }
             using (new LockAndElevate(ToDoLock))
                 ReplayActive = false;
+            IsisSystem.ThreadTerminationMagic();
         }
 
         internal void CheckCausalWaitQueue()
@@ -11766,10 +12035,10 @@ namespace Isis
                 }
                 else
                 {
-                    foreach (ReliableSender.MsgDesc md in ReliableSender.LgPendingSendBuffer)
-                        if (md.group == this)
+                    foreach (ReliableSender.MsgDesc lgmd in ReliableSender.LgPendingSendBuffer)
+                        if (lgmd.group == this)
                         {
-                            ms = md.MsgId - 1;
+                            ms = lgmd.MsgId - 1;
                             break;
                         }
                     if ((IsisSystem.Debug & IsisSystem.TOKENLOGIC) != 0)
@@ -11915,6 +12184,7 @@ namespace Isis
             internal int state;                  // State currently has just 3 values
             internal int stableAtSender;               // Stable up to this msgid. 
             internal int viewid;                 // Viewid for this token
+            internal int alsoSeenBase;           // alsoSeen is computed wrt to this base
             internal long alsoSeen;              // Up to 64 bits for ids > stable that have been seen membership in large groups
             internal int tokenLevel;             // Level of the token tree at which this token was sent
             internal int aggStable;              // Aggregated stable value for nodes within the specified level, for transmission
@@ -11962,8 +12232,16 @@ namespace Isis
 
             internal tokenInfo(Group g)
             {
-                viewDeltas = new Isis.ViewDelta[0];
-                WorkingView = g.theView;
+                if (g.theToken == null || g.theToken.viewDeltas == null)
+                {
+                    viewDeltas = new Isis.ViewDelta[0];
+                    WorkingView = g.theView;
+                }
+                else
+                {
+                    viewDeltas = g.theToken.viewDeltas;
+                    WorkingView = g.theToken.WorkingView;
+                }
                 WorkingViewInstalledAt = Isis.NOW();
                 myGroup = g;
                 reinitializeToken(g);
@@ -12152,6 +12430,8 @@ namespace Isis
                         }
                         WorkingView = g.theView;
                         WorkingViewInstalledAt = Isis.NOW();
+                        if (parentGroup.gaddr != null && parentGroup.gaddr.Equals(Isis.ISISMEMBERS.gaddr))
+                            IPMCNewView(parentGroup.gaddr, WorkingView);
                     }
                     if (priorView == WorkingView.viewid)
                         return;
@@ -12179,7 +12459,9 @@ namespace Isis
                 foreach (Isis.ViewDelta vd in newvds)
                 {
                     bool fnd = false;
-                    foreach (Isis.ViewDelta knownvd in viewDeltas)
+                    if (vd.prevVid < stableVID)
+                        fnd = true;
+                    else foreach (Isis.ViewDelta knownvd in viewDeltas)
                         if (vd.prevVid <= knownvd.prevVid)
                         {
                             fnd = true;
@@ -12205,7 +12487,7 @@ namespace Isis
                     }
 
                     foreach (Isis.ViewDelta vd in newvds)
-                        if (vd.prevVid > maxvid)
+                        if (vd.prevVid >= stableVID && vd.prevVid > maxvid)
                             mergedVds[idx++] = vd;
 
                     viewDeltas = mergedVds;
@@ -12231,6 +12513,43 @@ namespace Isis
                     Isis.ArrayResize<Isis.ViewDelta>(ref viewDeltas, idx);
             }
 
+            // Checks for holes in the ViewDelta list of the current token; used as a unit-check
+            internal void checkVDS(string fromWhere)
+            {
+                Group g = doLookup(gaddr);
+                if (g == null)
+                {
+                    Isis.WriteLine("Warning: CheckVDS(" + fromWhere + ") -- group lookup returned null");
+                    return;
+                }
+                if ((g.flags & G_ISLARGE) == 0)
+                    return;
+                tokenInfo theToken;
+                using (new LockAndElevate(g.TokenLock))
+                    theToken = g.theToken;
+                View theView;
+                using (new LockAndElevate(g.ViewLock))
+                    theView = g.theView;
+                if (theToken == null || theView == null)
+                {
+                    Isis.WriteLine("Warning: CheckVDS(" + fromWhere + ") -- theToken null or theView null");
+                    return;
+                }
+                if (theToken != this)
+                {
+                    Isis.WriteLine("Warning: CheckVDS(" + fromWhere + ") -- theToken != g.theToken");
+                    return;
+                }
+                if (theToken.viewDeltas == null || theToken.viewDeltas.Length == 0)
+                    return;
+                Isis.ViewDelta vd = theToken.viewDeltas[0];
+                if (vd.prevVid > theView.viewid)
+                    throw new IsisException("in checkVDS(" + fromWhere + ") vd[0].previd=" + vd.prevVid + " but theView=" + theView);
+                View wv = theToken.WorkingView;
+                if (vd.prevVid > wv.viewid)
+                    throw new IsisException("in checkVDS(" + fromWhere + ") vd[0].previd=" + vd.prevVid + " but WorkingView=" + wv);
+            }
+
             /// <summary>
             /// Constructor for tokens received via Isis Msg layer
             /// </summary>
@@ -12239,8 +12558,8 @@ namespace Isis
             {
                 int idx = 0;
                 object[] obs = Msg.BArrayToObjects(ba, typeof(Address), typeof(Address), typeof(Address),
-                    typeof(int), typeof(int), typeof(int), typeof(int), typeof(long), typeof(int), typeof(int), typeof(int), typeof(int),
-                    typeof(Isis.ViewDelta[]), typeof(byte[][]));
+                    typeof(int), typeof(int), typeof(int), typeof(int), typeof(int), typeof(long), typeof(int), 
+                    typeof(int), typeof(int), typeof(int), typeof(Isis.ViewDelta[]), typeof(byte[][]));
                 gaddr = (Address)obs[idx++];
                 myGroup = Group.doLookup(gaddr);
                 groupOwner = (Address)obs[idx++];
@@ -12249,6 +12568,7 @@ namespace Isis
                 state = (int)obs[idx++];
                 viewid = (int)obs[idx++];
                 stableAtSender = (int)obs[idx++];
+                alsoSeenBase = (int)obs[idx++];
                 alsoSeen = (long)obs[idx++];
                 aggStable = (int)obs[idx++];
                 tokenLevel = (int)obs[idx++];
@@ -12308,7 +12628,7 @@ namespace Isis
                     vds = viewDeltas;
                 else
                     vds = new Isis.ViewDelta[0];
-                byte[] bv = Msg.toBArray(gaddr, groupOwner, sender, logicalClock, state, viewid, stableAtSender, alsoSeen, aggStable, tokenLevel, stableTo, stableVID, vds, aggBv);
+                byte[] bv = Msg.toBArray(gaddr, groupOwner, sender, logicalClock, state, viewid, stableAtSender, alsoSeenBase, alsoSeen, aggStable, tokenLevel, stableTo, stableVID, vds, aggBv);
                 return bv;
             }
 
@@ -12338,7 +12658,7 @@ namespace Isis
                 string sbl = " ";
                 for (int level = 0; level < nlevels; level++)
                     sbl += "[" + level + "]=" + StableByLevel[level] + " ";
-                s += "\r\n         StableTo=" + stableTo + ", aggStable=" + aggStable + ", StableVID=" + stableVID + ", stableAtSender=" + stableAtSender + ", alsoSeen=" + alsoSeen.ToString("X") + ", StableByLevel = {" + sbl + "}";
+                s += "\r\n         StableTo=" + stableTo + ", aggStable=" + aggStable + ", StableVID=" + stableVID + ", stableAtSender=" + stableAtSender + ", alsoSeenBase = " + alsoSeenBase + ", alsoSeen=" + alsoSeen.ToString("X") + ", StableByLevel = {" + sbl + "}";
                 s += AggState(this);
                 if (viewDeltas.Length > 0)
                 {
@@ -12574,6 +12894,8 @@ namespace Isis
             tokenInfo theToken;
             using (new LockAndElevate(TokenLock))
                 theToken = this.theToken;
+            if (theToken.WorkingView != null && theToken.WorkingView.viewid > theView.viewid)
+                throw new IsisException("resetAggregates");
             theToken.WorkingView = theView;
             theToken.WorkingViewInstalledAt = Isis.NOW();
             theToken.applyViewDeltas(this, new Isis.ViewDelta[0]);
@@ -12591,30 +12913,32 @@ namespace Isis
                 theView = this.theView;
             }
             long alsoSeen = 0;
-            int myStable;
+            int myStable, alsoSeenBase;
             if (theToken.IAmLgOwner)
-                myStable = theView.NextIncomingMsgID[1] - 1;
+                alsoSeenBase = myStable = theView.NextIncomingMsgID[1] - 1;
             else
             {
-                using (new LockAndElevate(UnstableLock))
+                using (new LockAndElevate(ReliableSender.PendingSendBufferLock))
                 {
-                    // Anyone else simply reports the last locally delivered message from
-                    // the sender (the LargeGroupOwner) and (to inhibit useless resends)
-                    // a bit vector of up to 64 other messages already received
                     myStable = theView.NextIncomingMsgID[1] - 1;
-                    foreach (Msg m in Unstable)
-                        if (m.msgid > myStable)
-                            alsoSeen |= (1L) << (m.msgid - myStable - 1);
+                    alsoSeenBase = theToken.stableTo;
+                    foreach (ReliableSender.MsgDesc lgmd in ReliableSender.LgPendingSendBuffer)
+                        if(lgmd.group == this && lgmd.MsgId > alsoSeenBase && (lgmd.MsgId - alsoSeenBase - 1) < 64)
+                            alsoSeen |= (1L) << (lgmd.MsgId - alsoSeenBase - 1);
                 }
             }
-            theToken.stableAtSender = myStable;
-            theToken.alsoSeen = alsoSeen;
-            if ((IsisSystem.Debug & IsisSystem.TOKENLOGIC) != 0)
+            if (theToken.stableAtSender != myStable || theToken.alsoSeenBase != alsoSeenBase || theToken.alsoSeen != alsoSeen)
             {
-                string s = "";
-                foreach (Msg m in Unstable)
-                    s += " " + m.vid + ":" + m.msgid;
-                Isis.WriteLine("updateSeenInfo: maxStable: " + myStable + ", unstable msgs: {" + s + " }, setting alsoSeen=" + alsoSeen.ToString("X"));
+                theToken.stableAtSender = myStable;
+                theToken.alsoSeenBase = alsoSeenBase;
+                theToken.alsoSeen = alsoSeen;
+                if ((IsisSystem.Debug & IsisSystem.TOKENLOGIC) != 0)
+                {
+                    string s = "";
+                    foreach (Msg m in Unstable)
+                        s += " " + m.vid + ":" + m.msgid;
+                    Isis.WriteLine("updateSeenInfo: maxStable: " + myStable + ", unstable msgs: {" + s + " }, setting alsoSeenBase = " + alsoSeenBase + ", alsoSeen=" + alsoSeen.ToString("X"));
+                }
             }
         }
 
@@ -12624,6 +12948,12 @@ namespace Isis
         // transmitted field group.  Those won't be initialized and hence have default values.
         internal void processIncoming(Address who, tokenInfo toke)
         {
+            List<ReliableSender.MsgDesc> toForwardFromPSB = new List<ReliableSender.MsgDesc>();
+            using (new LockAndElevate(ReliableSender.PendingSendBufferLock))
+                foreach (ReliableSender.MsgDesc lgmd in ReliableSender.LgPendingSendBuffer)
+                    if (lgmd.group == this)
+                        toForwardFromPSB.Add(lgmd);
+            ForwardMsg(toke, toForwardFromPSB);
             interesting = true;
             try
             {
@@ -12802,8 +13132,6 @@ namespace Isis
                                 theToken.fixVDS();
                         }
                     }
-                    List<Msg> toForward = new List<Msg>();
-                    List<ReliableSender.MsgDesc> toForwardFromPSB = new List<ReliableSender.MsgDesc>();
                     using (new LockAndElevate(UnstableLock))
                     {
                         List<Msg> newUnstable;
@@ -12819,39 +13147,7 @@ namespace Isis
                                     newUnstable.Add(m);
                             Unstable = newUnstable;
                         }
-                        if (!theToken.IAmLgOwner)
-                        {
-                            // Non-sender: the messages are on the Unstable list
-                            // Sender has them on the LgPendingSendQueue and retransmits them
-                            // from the retransmit thread
-                            // Garbage collect messages that have msgid > toke.stableTo
-                            if (gcollectedTo < toke.stableTo)
-                            {
-                                gcollectedTo = toke.stableTo;
-                                if ((IsisSystem.Debug & IsisSystem.TOKENLAYER) != 0)
-                                    Isis.WriteLine("LgGCollect to: " + gcollectedTo);
-                                newUnstable = new List<Msg>();
-                                foreach (Msg m in Unstable)
-                                {
-                                    toForward.Add(m);
-                                    if (m.msgid > toke.stableTo)
-                                        newUnstable.Add(m);
-                                }
-                                Unstable = newUnstable;
-                                ReliableSender.gotLgAck(this, toke.stableTo);
-                            }
-                            foreach (Msg m in Unstable)
-                                toForward.Add(m);
-                        }
-                        else
-                        {
-                            using (new LockAndElevate(ReliableSender.PendingSendBufferLock))
-                                foreach (ReliableSender.MsgDesc md in ReliableSender.LgPendingSendBuffer)
-                                    if (md.group.gaddr.Equals(gaddr))
-                                        toForwardFromPSB.Add(md);
-                        }
                     }
-                    ForwardMsg(toke, toForward, toForwardFromPSB);
                     if (valid)
                     {
                         updateSeenInfo();
@@ -12887,6 +13183,8 @@ namespace Isis
 
         internal void gotNewViewDeltas(Isis.ViewDelta[] vds)
         {
+            if (vds.Length == 0)
+                return;
             Group tg = doLookup(gaddr);
             if (tg != this)
             {
@@ -12904,8 +13202,24 @@ namespace Isis
             tokenInfo theToken;
             using (new LockAndElevate(TokenLock))
                 theToken = this.theToken;
+            View theView;
+            using (new LockAndElevate(ViewLock))
+                theView = this.theView;
             if (theToken != null)
+            {
+                int vid = theView.viewid;
+                foreach (Isis.ViewDelta vd in theToken.viewDeltas)
+                    if (vd.prevVid == vid)
+                        ++vid;
+                foreach(Isis.ViewDelta vd in vds)
+                    if(vd.prevVid < vid)
+                        continue;
+                else if (vd.prevVid > vid++)
+                    return;
                 theToken.applyViewDeltas(this, vds);
+            }
+            if (Isis.ISIS_TCP_ONLY && this == Isis.ISISMEMBERS)
+                ReliableSender.TCPNoteVDS(vds);
         }
 
         internal void switchToNewOwner(tokenInfo toke)
@@ -12934,20 +13248,15 @@ namespace Isis
 
         internal static LockObject flock = new LockObject("token.flock");
 
-        private static void ForwardMsg(tokenInfo toke, List<Msg> msgs, List<ReliableSender.MsgDesc> mds)
+        private static void ForwardMsg(tokenInfo toke, List<ReliableSender.MsgDesc> mds)
         {
-            if (msgs.Count() == 0 && mds.Count() == 0)
+            if (mds.Count() == 0)
                 return;
             int cnt = 0;
             using (new LockAndElevate(flock))
-            {
-                foreach (Msg m in msgs)
-                    if (ForwardMsg(toke, ReliableSender.ResendForm(m)))
-                        ++cnt;
                 foreach (ReliableSender.MsgDesc md in mds)
                     if (ForwardFromPSB(toke, md))
                         ++cnt;
-            }
             using (new LockAndElevate(IsisSystem.RTS.Lock))
                 IsisSystem.RTS.TTRet += cnt;
         }
@@ -12956,12 +13265,12 @@ namespace Isis
         {
             if (m.wasForwardedTo != null && m.wasForwardedTo.Equals(toke.sender))
                 return false;
-            int delta = m.msgid - toke.stableAtSender - 1;
+            int delta = m.msgid - toke.alsoSeenBase - 1;
             if (delta >= 0 && delta < 64 && (toke.alsoSeen & (1L << delta)) == 0)
             {
                 if ((IsisSystem.Debug & (IsisSystem.TOKENLOGIC | IsisSystem.NACKS)) != 0)
                     Isis.WriteLine("[" + Isis.TimeToString(Isis.NOW()) + "]: Token-based recovery: forwarding unstable msg " + m.vid + ":" + m.msgid + " to " + toke.sender +
-                        " because delta=" + delta + " and alsoseen=" + toke.alsoSeen.ToString("X"));
+                        " because delta=" + delta + " and alsoSeenBase=" + toke.alsoSeenBase + " and  alsoseen=" + toke.alsoSeen.ToString("X"));
                 m.wasForwardedTo = toke.sender;
                 m.gaddr = toke.gaddr;
                 ReliableSender.Forward(toke.sender, toke.gaddr, ReliableSender.ResendForm(m));
@@ -12974,12 +13283,12 @@ namespace Isis
         {
             if (Isis.NOW() < md.resendTime)
                 return false;
-            int delta = md.MsgId - toke.stableAtSender - 1;
+            int delta = md.MsgId - toke.alsoSeenBase - 1;
             if (delta >= 0 && delta < 64 && (toke.alsoSeen & (1L << delta)) == 0)
             {
                 if ((IsisSystem.Debug & (IsisSystem.TOKENLOGIC | IsisSystem.NACKS)) != 0)
                     Isis.WriteLine("[" + Isis.TimeToString(Isis.NOW()) + "]: Token-based recovery: forwarding unstable msg from lg-pendingsend-buffer " + md.MsgVid + ":" + md.MsgId + " to " + toke.sender +
-                        " because delta=" + delta + " and alsoseen=" + toke.alsoSeen.ToString("X") + " and was last forwarded at " + Isis.TimeToString(md.resendTime));
+                        " because delta=" + delta + " and alsoSeenBase=" + toke.alsoSeenBase + " and  alsoseen=" + toke.alsoSeen.ToString("X") + " and was last forwarded at " + Isis.TimeToString(md.resendTime));
                 md.resendTime = Isis.NOW() + 500;
                 ReliableSender.ResendP2P(toke.sender, md);
                 return true;
@@ -13008,7 +13317,7 @@ namespace Isis
                     ForwardMsg(ti, m);
         }
 
-        internal LockObject GotAMsgLock = new LockObject("GotAMsgLock");
+        internal LockObject GotAMsgLock = new LockObject("GotAMsgLock", ThreadPriority.Highest);
 
         internal bool GotAMsg(Msg m, byte type, string where)
         {
@@ -13021,7 +13330,7 @@ namespace Isis
                 }
                 catch (IsisException e)
                 {
-                    if (!GroupOpen && WasOpen)
+                    if ((!GroupOpen && WasOpen) || (!IsisSystem.IsisActive && IsisSystem.IsisWasActive))
                         return false;
                     throw new IsisException("Uncaught IsisException in group <" + gname + ">: " + e.Message);
                 }
@@ -13034,8 +13343,8 @@ namespace Isis
         internal bool _GotAMsg(Msg m, byte type, string where)
         {
             List<Msg> willDeliver = new List<Msg>();
-            using (new LockAndElevate(ToDoLock))
             using (new LockAndElevate(ViewLock))
+            using (new LockAndElevate(ToDoLock))
             {
                 int which = -1, vid = m.vid - 2;
                 if ((IsisSystem.Debug & IsisSystem.LOWLEVELMSGS) != 0)
@@ -13058,7 +13367,10 @@ namespace Isis
                     }
                 }
                 if ((IsisSystem.Debug & IsisSystem.MESSAGELAYER) != 0 || (flags & G_TRACE) != 0)
-                    Isis.WriteLine("GotAMsg<" + gname + ">: event type=" + Msg.mtypes[type] + ", sender " + m.sender + " rank is " + which + "\r\n   " + m);
+                    Isis.WriteLine("GotAMsg<" + gname + ">: event type=" + Msg.mtypes[type] + ", sender " + m.sender + " rank is " + which + ", m.offWire is " + (m.offWire != null? "non":"") + "null\r\n   " + m);
+                if ((flags & G_ISLARGE) != 0 && m.offWire != null)
+                    ReliableSender.LgAdd(this, m, type);
+                m.offWire = null;
                 if (gname.Equals("ORACLE"))
                 {
                     if (which == -1 && !m.sender.isMyAddress())
@@ -13310,7 +13622,7 @@ namespace Isis
                                 if (vhcb.withLock)
                                 {
                                     VHCallBack myVhcb = vhcb;
-                                    new Thread(delegate() { Thread.CurrentThread.Name = "Callback thread for viewhander in <" + gname + ">"; using (new ILock(ILock.LLENTRY, gaddr)) myVhcb.vhProc(v); }).Start();
+                                    new Thread(delegate() { Thread.CurrentThread.Name = "Callback thread for viewhander in <" + gname + ">"; using (new ILock(ILock.LLENTRY, gaddr)) myVhcb.vhProc(v); IsisSystem.ThreadTerminationMagic(); }).Start();
                                 }
                                 else
                                     vhcb.vhProc(v);
@@ -13325,7 +13637,7 @@ namespace Isis
                 if (IsisSystem.IsisActive && GroupOpen)
                     throw new IsisException("doDelivery<" + gname + ">");
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
         }
 
         private void doP2PDeliveryCallback(Msg m)
@@ -13642,8 +13954,11 @@ namespace Isis
 
         internal void enqueueForGroupDelivery(Msg m)
         {
+            int retry = 0;
             m.type = Msg.ISGRPP2P;
-            while (incomingP2P == null)
+            while (incomingP2P == null && retry++ < 5)
+                Thread.Sleep(500);
+            if (incomingP2P == null)
                 throw new IsisException("Unable to enqueue for delivery: p2p message " + m + " in group <" + this.gname + ">");
             incomingP2P.put(m);
         }
@@ -13699,12 +14014,23 @@ namespace Isis
                         return;
             if (obs.Length == 1 && obs[0].GetType().Equals(typeof(Msg)))
                 return;
-            string ts = " ";
+            string ts = " ", cbs = " ";
             if (obs.Length == 1)
                 ts += "<nil>";
             else for (int i = 1; i < obs.Length; i++)
                     ts += obs[i].GetType() + " ";
-            throw new MissingMethodException("No handler for request " + Isis.rToString(obs[0]) + " matches provided argument types { " + ts + "}");
+            if (cblist != null)
+                foreach (CallBack cb in cblist)
+                    cbs += "handler[" + tlist(cb) + " ] ";
+            throw new MissingMethodException("No handler for request " + Isis.rToString(obs[0]) + " matches provided argument types { " + ts + "} (found " + cbs + ")");
+        }
+
+        private static string tlist(CallBack cb)
+        {
+            string tls = " ";
+            for (int i = 0; i < cb.cbProc.ptypes.Length; i++)
+                tls += cb.cbProc.ptypes[i] + " ";
+            return tls;
         }
 
         internal class redeliveryInfo
@@ -13797,7 +14123,7 @@ namespace Isis
                     if (cb.withLock)
                     {
                         CallBack mycb = cb;
-                        new Thread(delegate() { Thread.CurrentThread.Name = "Callback with lock"; using (new ILock(ILock.LLENTRY, gaddr)) cb.cbProc.doUpcall(args); }).Start();
+                        new Thread(delegate() { Thread.CurrentThread.Name = "Callback with lock"; using (new ILock(ILock.LLENTRY, gaddr)) cb.cbProc.doUpcall(args); IsisSystem.ThreadTerminationMagic(); }).Start();
                     }
                     else
                         cb.cbProc.doUpcall(args);
@@ -14115,6 +14441,19 @@ namespace Isis
                             stash.Add(gsn);
                             stashNonEmpty = true;
                         }
+            if ((g.flags & G_ISLARGE) != 0)
+            {
+                List<ReliableSender.MsgDesc> toReplay = new List<ReliableSender.MsgDesc>();
+                using (new LockAndElevate(g.GotAMsgLock))
+                {
+                    using (new LockAndElevate(ReliableSender.PendingSendBufferLock))
+                        foreach (ReliableSender.MsgDesc lgmd in ReliableSender.LgPendingSendBuffer)
+                            if (lgmd.group == g && (lgmd.MsgId == -1 || lgmd.MsgId >= g.nextMsgid))
+                                toReplay.Add(lgmd);
+                }
+                foreach (ReliableSender.MsgDesc lgmd in toReplay)
+                    ReliableSender.RecvBB.put(lgmd.theBytes);
+            }
         }
 
         internal static string dumpStash()
@@ -14197,20 +14536,20 @@ namespace Isis
 
         internal void InterruptAggregationWaits()
         {
-            if (IsisSystem.IsisActive)
-                throw new Exception("IsisActive in InterruptAggregationWaits!");
-            List<Group> GClone = Group.IsisGroupsClone();
-            foreach (Group g in GClone)
-            {
-                tokenInfo theToken;
-                using (new LockAndElevate(g.TokenLock))
-                    theToken = g.theToken;
-                if (theToken == null)
-                    continue;
-                for (int level = 0; level < theToken.nlevels; level++)
-                    foreach (IAggregateEventHandler ae in theToken.AggList[level])
+            tokenInfo theToken;
+            using (new LockAndElevate(TokenLock))
+                theToken = this.theToken;
+            if (theToken == null)
+                return;
+            if (IsisSystem.IsisActive && !IsisSystem.shuttingDown)
+                throw new IsisException("IsisActive in InterruptAggregationWaits!");
+            for (int level = 0; level < theToken.nlevels; level++)
+                foreach (IAggregateEventHandler ae in theToken.AggList[level])
+                    try
+                    {
                         ae.AggEvent(BreakWaits);
-            }
+                    }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
         }
 
         /// <summary>
@@ -14837,9 +15176,9 @@ namespace Isis
                 return;
             if (Wedged != null)
             {
-#if !MONO_MODE
+#if !__MonoCS__
                 Wedged.Dispose();
-#endif // !MONO_MODE
+#endif // !__MonoCS__
                 Wedged = null;
             }
             if (myChkptStream != null)
@@ -14977,7 +15316,6 @@ namespace Isis
 
         internal Address(IPAddress h, int p)
         {
-            if (h == null) throw new IsisException("Woa Nelly!");
             home = h;
             pid = p;
         }
@@ -15078,7 +15416,8 @@ namespace Isis
         internal static Address[] ToAddresses(byte[] ba, int off, int nb)
         {
             int na = nb / lengthOfAddress;
-            if (na * lengthOfAddress != nb) throw new IsisException("Isis.Address: byte vector has unexpected length");
+            if (na * lengthOfAddress != nb)
+                return new Address[0];
             Address[] av = new Address[na];
             for (int n = 0; n < na; n++)
             {
@@ -15275,6 +15614,10 @@ namespace Isis
         /// </summary>
         public Address gaddr;
         /// <summary>
+        /// Group name, if known
+        /// </summary>
+        public string gname = "unknown";
+        /// <summary>
         /// List of the current members of this group
         /// </summary>
         public Address[] members = new Address[0];
@@ -15289,6 +15632,7 @@ namespace Isis
         internal Address currentOracleRep = Isis.NULLADDRESS;
         internal bool isFinal = false;
         internal bool isLarge = false;
+        internal int leaderId;
         internal bool[] hasFailed = new bool[0];
         internal bool hasFailedHasChanged;
         internal int[] NextIncomingMsgID;
@@ -15353,7 +15697,7 @@ namespace Isis
 
         internal string ViewSummary()
         {
-            return "View[gaddr=" + gaddr + ", viewid=" + viewid + ";  " + members.Length + " members={ " + Address.ToString(members) + "}";
+            return "View[gname=<" + gname + ">, gaddr=" + gaddr + ", viewid=" + viewid + ";  " + members.Length + " members={ " + Address.ToString(members) + "}";
         }
 
         /// <summary>
@@ -15447,8 +15791,9 @@ namespace Isis
         /// <returns></returns>
         public static View Lookup(Address gaddr) { Group g = Group.doLookup(gaddr); if (g == null) return null; return g.theView; }
 
-        internal View(Address ga, Address[] m, int vid, bool lg)
+        internal View(String gn, Address ga, Address[] m, int vid, bool lg)
         {
+            gname = gn;
             gaddr = ga;
             members = (Address[])m.Clone();
             myVT = new int[members.Length];
@@ -15592,18 +15937,20 @@ namespace Isis
         /// <returns></returns>
         public byte[] toBArray()
         {
-            byte[] ba = Msg.toBArray(gaddr, members, hasFailed, viewid, NextIncomingMsgID, isLarge);
+            byte[] ba = Msg.toBArray(Isis.LeaderId, gname, gaddr, members, hasFailed, viewid, NextIncomingMsgID, isLarge);
             return ba;
         }
 
         /// <summary>
-        /// Constructor for new View objects.  Not normally needed by end users.
+        /// Constructor for new View objects received as byte arrays.  Not normally needed by end users.
         /// </summary>
         /// <param name="ba"></param>
         public View(byte[] ba)
         {
-            object[] obs = Msg.BArrayToObjects(ba, typeof(Address), typeof(Address[]), typeof(bool[]), typeof(int), typeof(int[]), typeof(bool));
+            object[] obs = Msg.BArrayToObjects(ba, typeof(int), typeof(String), typeof(Address), typeof(Address[]), typeof(bool[]), typeof(int), typeof(int[]), typeof(bool));
             int idx = 0;
+            leaderId = (int)obs[idx++];
+            gname = (String)obs[idx++];
             gaddr = (Address)obs[idx++];
             members = (Address[])obs[idx++];
             myVT = new int[members.Length];
@@ -15820,7 +16167,7 @@ namespace Isis
             }
             if (theILock != null)
             {
-                int tid = Isis.OnTimerThread(Math.Max(100, timeout.when), (TimerCallback)delegate() { try { rdvTimeout(ri, timeout.action, timeout.origin); } catch (IsisShutdown) { } });
+                int tid = Isis.OnTimerThread(Math.Max(100, timeout.when), (TimerCallback)delegate() { try { rdvTimeout(ri, timeout.action, timeout.origin); } catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); } });
                 ri.tid = tid;
                 theILock.BarrierWait(g);
                 Isis.TimerCancel(tid);
@@ -16176,7 +16523,7 @@ namespace Isis
             internal int UID;
             internal int MsgVid;
             internal int MsgId;
-            internal byte[] thePayload;
+            internal byte[] theBytes;
             internal int retryCnt;
             internal int retryLimit;
             internal int retryDelay;
@@ -16204,7 +16551,7 @@ namespace Isis
                 this.UID = uid;
                 this.MsgVid = vid;
                 this.MsgId = MsgID;
-                this.thePayload = buffer;
+                this.theBytes = buffer;
                 this.retryDelay = Math.Max(25, rtd);
                 this.num = num;
                 this.denom = denom;
@@ -16240,11 +16587,11 @@ namespace Isis
             }
             foreach (MsgDesc md in ps)
                 s += " Dest " + md.dest + (md.localSender ? "" : "(forwarded)") + "<" + (md.group == null ? "p2p" : md.group.gname) + ">, counts as " + md.num + "/" + md.denom + " for flow control, msgid " + md.MsgVid + ":" + md.MsgId +
-                    ", uid " + md.UID + ", first sent at " + Isis.TimeToString(md.firstSentAt) + "... retry at " + Isis.TimeToString(md.remulticastTime) + ", retryCnt " + md.retryCnt + Msg.PPayload(md.thePayload) + "\r\n";
+                    ", uid " + md.UID + ", first sent at " + Isis.TimeToString(md.firstSentAt) + "... retry at " + Isis.TimeToString(md.remulticastTime) + ", retryCnt " + md.retryCnt + Msg.PPayload(md.theBytes) + "\r\n";
             s += "Large-Group Pending Send Buffer:\r\n";
             foreach (MsgDesc md in pls)
                 s += " Dest " + md.dest + (md.localSender ? "" : "(forwarded)") + ", counts as " + md.num + "/" + md.denom + " for flow control, msgid " + md.MsgVid + ":" + md.MsgId +
-                    ", uid " + md.UID + " first sent at " + Isis.TimeToString(md.firstSentAt) + ", last sent at " + Isis.TimeToString(md.lastSentAt) + ", retry at " + Isis.TimeToString(md.remulticastTime) + ", retryCnt " + md.retryCnt + Msg.PPayload(md.thePayload) + (md.p2pdcb == null ? " (no callback)" : " (callback on completion)") + "\r\n";
+                    ", uid " + md.UID + " first sent at " + Isis.TimeToString(md.firstSentAt) + ", last sent at " + Isis.TimeToString(md.lastSentAt) + ", retry at " + Isis.TimeToString(md.remulticastTime) + ", retryCnt " + md.retryCnt + Msg.PPayload(md.theBytes) + (md.p2pdcb == null ? " (no callback)" : " (callback on completion)") + "\r\n";
             s += P2PSequencer.GetState();
             return s;
         }
@@ -16326,7 +16673,7 @@ namespace Isis
         {
             using (new LockAndElevate(PendingSendBufferLock))
                 foreach (MsgDesc md in PendingSendBuffer)
-                    if (md.localSender)
+                    if (md.localSender && !md.isp2p)
                         return ReliableSender.Counter - md.UID;
             return 0;
         }
@@ -16377,8 +16724,6 @@ namespace Isis
             my_acksocket.Close();
             my_p2psocket.Close();
             TCPShutdown();
-            if (ackNackResenderThread != null)
-                ackNackResenderThread.Abort();
         }
 
         internal static LockObject rWaitLock = new LockObject("rWaitLock");
@@ -16463,6 +16808,29 @@ namespace Isis
                 FlushingRemove(lgmd, "lgmd.stabilize", --cnt == 0);
         }
 
+        internal static void LgAdd(Group g, Msg m, byte type)
+        {
+            using (new LockAndElevate(PendingSendBufferLock))
+            {
+                bool copyAll = false;
+                LinkedList<MsgDesc> newLgPendingSendBuffer = new LinkedList<MsgDesc>();
+                foreach (MsgDesc lgmd in LgPendingSendBuffer)
+                    if (lgmd.group == g && lgmd.MsgVid == m.vid && lgmd.MsgId == m.msgid)
+                        return;
+                    else if (lgmd.group != g || copyAll || lgmd.MsgVid < m.vid || lgmd.MsgId < m.msgid)
+                        newLgPendingSendBuffer.AddLast(lgmd);
+                    else
+                    {
+                        newLgPendingSendBuffer.AddLast(new MsgDesc(type, 5, g, g.gaddr, false, true, m.msgid, m.offWire, m.vid, m.msgid, 0, 1, 20, false, null));
+                        newLgPendingSendBuffer.AddLast(lgmd);
+                        copyAll = true;
+                    }
+                if (!copyAll)
+                    newLgPendingSendBuffer.AddLast(new MsgDesc(type, 5, g, g.gaddr, false, true, m.msgid, m.offWire, m.vid, m.msgid, 0, 1, 20, false, null));
+                LgPendingSendBuffer = newLgPendingSendBuffer;
+            }
+        }
+
         internal static Thread AckThread;
         internal static Thread ReplyThread;
         internal static Socket my_acksocket;
@@ -16508,14 +16876,14 @@ namespace Isis
                     s.Bind(localEndPoint);
                 port = ((IPEndPoint)s.LocalEndPoint).Port;
 
-#if !MONO_MODE
+#if !__MonoCS__
                 // Clumsy mechanism to prevent forcible socket reset events when an Isis application exits
                 uint IOC_IN = 0x80000000;
                 uint IOC_VENDOR = 0x18000000;
                 uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
 
                 s.IOControl((int)SIO_UDP_CONNRESET, new byte[] { Convert.ToByte(false) }, null);
-#endif // !MONO_MODE
+#endif // !__MonoCS__
             }
             else
             {
@@ -16544,7 +16912,7 @@ namespace Isis
                     }
                 }
             }
-
+            s.ReceiveTimeout = 2500;
             t = StartSocketReader(s, rd, pri, name);
             return s;
         }
@@ -16565,16 +16933,16 @@ namespace Isis
                         IsisSystem.RTS.ThreadCntrs[15]++;
                         rd(s);
                     }
-                    catch (ThreadAbortException) { return; }
-                    catch (ThreadInterruptedException) { return; }
-                    catch (IsisShutdown) { return; }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
                     catch (Exception e)
                     {
-                        if (!IsisSystem.IsisActive)
-                            return;
-                        IsisSystem.WriteLine("P2P or ACK  SocketReader threw an exception: " + e);
-                        throw new IsisException("P2P or ACK thread fault");
+                        if (IsisSystem.IsisActive)
+                        {
+                            IsisSystem.WriteLine("P2P or ACK  SocketReader threw an exception: " + e);
+                            throw new IsisException("P2P or ACK thread fault");
+                        }
                     }
+                IsisSystem.ThreadTerminationMagic();
             });
             //t.Priority = p;
             t.Name = "Isis " + name + " socket reader";
@@ -16622,19 +16990,18 @@ namespace Isis
                     try
                     {
                         while (IsisSystem.IsisActive && (g.GroupOpen || !g.WasOpen))
-                            try
-                            {
-                                IsisSystem.RTS.ThreadCntrs[16]++;
-                                ReliableSender.Receive(g);
-                            }
-                            catch (ThreadAbortException) { }
+                        {
+                            IsisSystem.RTS.ThreadCntrs[16]++;
+                            ReliableSender.Receive(g);
+                        }
                     }
-                    catch (IsisShutdown) { }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 g.groupReaderThread.Name = "Isis <" + g.gname + "> incoming thread";
                 g.groupReaderThread.Start();
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
         }
 
         internal static int[] getNetworkInterfaces(string[] which)
@@ -16736,16 +17103,17 @@ namespace Isis
                         Isis.WriteLine("WARNING: Thread loop counter(s) advanced rapidly: " + allCntrs);
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         // Be very careful with locking in this code; it needs to be blazingly fast and to never pause
         internal static void Resender()
         {
-            while (!IsisSystem.IsisActive)
-                ResenderSleepLock.WaitOne(250);
             try
             {
+                while (!IsisSystem.IsisActive)
+                    ResenderSleepLock.WaitOne(250);
                 int rsCount = 0, szeroCount = 0;
                 while (IsisSystem.IsisActive)
                 {
@@ -16787,7 +17155,8 @@ namespace Isis
                                 }
                         lgpsb = new List<MsgDesc>();
                         foreach (MsgDesc md in LgPendingSendBuffer)
-                            lgpsb.Add(md);
+                            if (md.retryCnt < Isis.ISIS_MAXLGRETRIES)
+                                lgpsb.Add(md);
                     }
                     psb = Scramble(psb);
                     lgpsb = Scramble(lgpsb);
@@ -16816,7 +17185,7 @@ namespace Isis
                                     sleep_until = 0;
                             }
                             if ((IsisSystem.Debug & IsisSystem.MESSAGELAYER) != 0)
-                                Isis.WriteLine("Resender.sendto[Now:" + Isis.NOW() + ", md.remulticastTime:" + md.remulticastTime + "]: dest " + md.dest + ", ID " + md.UID + "/" + md.MsgVid + ":" + md.MsgId + ", len " + md.thePayload.Length + " bytes");
+                                Isis.WriteLine("Resender.sendto[Now:" + Isis.NOW() + ", md.remulticastTime:" + md.remulticastTime + "]: dest " + md.dest + ", ID " + md.UID + "/" + md.MsgVid + ":" + md.MsgId + ", len " + md.theBytes.Length + " bytes");
                             if (md.retryCnt < 5 && Resend(md))
                                 ++md.retryCnt;
                             md.retryDelay = Math.Min(500, Math.Max(5, md.retryDelay << 1));
@@ -16830,47 +17199,20 @@ namespace Isis
                     {
                         if (Isis.NOW() < lgmd.remulticastTime || !lgmd.group.GroupOpen)
                             continue;
-                        // WARNING: potentially risky code.  Normally this code should first obtain g.TokenLock, but we're skipping that step
-                        // to avoid risk of deadlock.  We're "read-only" on this token and the dangers of access without a proper lock are
-                        // avoided.  Still, logic of this kind makes me nervous and any changes here need to be carefully thought through!
                         Group.tokenInfo theToken = lgmd.group.theToken;
                         if (theToken == null)
                             continue;
-                        if ((!theToken.inhibitResenderLoop && lgmd.retryCnt >= Isis.ISIS_MAXLGRETRIES - 1 || lgmd.retryCnt >= Isis.ISIS_MAXLGRETRIES * 2) &&
-                            (Isis.NOW() - Math.Max(lgmd.firstSentAt, theToken.WorkingViewInstalledAt)) > Isis.ISIS_DEFAULTTIMEOUT * (theToken.nlevels + 2))
+                        if (++rsCount > Isis.ISIS_MAXASYNCMTOTAL)
                         {
-                            bool inhibit = false;
-                            foreach (bool b in theToken.myGroup.theView.hasFailed)
-                                if (b)
-                                {
-                                    inhibit = true;
-                                    break;
-                                }
-                            if (inhibit)
-                                continue;
-                            if (lgmd.group == Isis.ISISMEMBERS)
-                                throw new IsisException("Unable to stabilize message " + lgmd.MsgId + " in group ISISMEMBERS" + IsisSystem.GetState());
-                            using (new LockAndElevate(PendingSendBufferLock))
-                                LgPendingSendBuffer.Remove(lgmd);
-                            FlushingRemove(lgmd, "lgmd.stabilize", true);
-                            lgmd.group.Terminate();
-                            sleep_until = 50;
-                            break;
+                            rsCount = 0;
+                            if (!ResenderSleepLock.WaitOne(10))
+                                sleep_until = 0;
                         }
-                        else
-                        {
-                            if (++rsCount > Isis.ISIS_MAXASYNCMTOTAL)
-                            {
-                                rsCount = 0;
-                                if (!ResenderSleepLock.WaitOne(10))
-                                    sleep_until = 0;
-                            }
-                            if (((lgmd.retryCnt < 5 && (Isis.NOW() - lgmd.lastSentAt) > 1000) || (Isis.NOW() - lgmd.lastSentAt) > 5000) && ReMulticast(lgmd))
-                                ++lgmd.retryCnt;
-                            if (lgmd.retryDelay < sleep_until)
-                                sleep_until = lgmd.retryDelay * lgmd.retryCnt;
-                            lgmd.remulticastTime = Isis.NOW() + Math.Max(1000, Math.Max(500 + Math.Min(4, lgmd.retryCnt) * 250, lgmd.retryDelay * lgmd.retryCnt));
-                        }
+                        if (((lgmd.retryCnt < 5 && (Isis.NOW() - lgmd.lastSentAt) > 1000) || (Isis.NOW() - lgmd.lastSentAt) > 5000) && ReMulticast(lgmd))
+                            ++lgmd.retryCnt;
+                        if (lgmd.retryDelay < sleep_until)
+                            sleep_until = lgmd.retryDelay * lgmd.retryCnt;
+                        lgmd.remulticastTime = Isis.NOW() + Math.Max(1000, Math.Max(500 + Math.Min(4, lgmd.retryCnt) * 250, lgmd.retryDelay * lgmd.retryCnt));
                     }
                     TCPListCheck();
                     if (sleep_until != 0)
@@ -16888,10 +17230,11 @@ namespace Isis
                 if ((IsisSystem.Debug & IsisSystem.MESSAGELAYER) != 0)
                     Isis.WriteLine("IsisActive false: Resender exiting.");
             }
-            catch (IsisShutdown e) { Isis.WriteLine("Resender theead caught IsisShutdown exception " + e); }
-            catch (SocketException e) { Isis.WriteLine("Resender theead caught SocketException exception " + e); }
+            catch (IsisShutdown) { return; }
+            catch (SocketException) { if (IsisSystem.IsisActive) throw new IsisException("Isis terminating due to socket exception in resender thread"); }
             if (IsisSystem.IsisActive)
                 throw new IsisException("Resender thread has crashed");
+            IsisSystem.ThreadTerminationMagic();
         }
 
         internal static void P2PSend(Address dest, int port, byte[] data, int which)
@@ -16934,15 +17277,15 @@ namespace Isis
             if (Isis.ISIS_TCP_ONLY)
             {
                 if (Isis.ISISMEMBERS != null && Isis.ISISMEMBERS.HasFirstView)
-                    Isis.ISISMEMBERS.UDPTunnel(md.dest, md.retryCnt, md.thePayload, 0);
+                    Isis.ISISMEMBERS.UDPTunnel(md.dest, md.retryCnt, md.theBytes, 0);
             }
             else
             {
                 try
                 {
                     IPEndPoint target = new IPEndPoint(md.dest.home, md.dest.p2pPort);
-                    ReliableSender.CheckLen(md.thePayload);
-                    int bs = ReliableSender.my_p2psocket.SendTo(md.thePayload, target);
+                    ReliableSender.CheckLen(md.theBytes);
+                    int bs = ReliableSender.my_p2psocket.SendTo(md.theBytes, target);
                     if ((IsisSystem.Debug & IsisSystem.LOWLEVELMSGS) != 0)
                         using (new LockAndElevate(ackInfoLock))
                             ackInfo.Add("[" + Isis.TimeToString(Isis.NOW()) + "]: Resend to " + target + " for " + md.dest + " UID " + md.UID + "\r\n");
@@ -16962,14 +17305,14 @@ namespace Isis
         {
             if (Isis.ISIS_TCP_ONLY)
             {
-                TunnelMsg(true, dest, md.thePayload, (md.group == null) ? Isis.ISISMEMBERS.gaddr : md.group.gaddr);
+                TunnelMsg(true, dest, md.theBytes, (md.group == null) ? Isis.ISISMEMBERS.gaddr : md.group.gaddr);
                 return;
             }
             try
             {
                 IPEndPoint remoteEP = new IPEndPoint(dest.home, dest.p2pPort);
-                ReliableSender.CheckLen(md.thePayload);
-                int bs = ReliableSender.my_p2psocket.SendTo(md.thePayload, remoteEP);
+                ReliableSender.CheckLen(md.theBytes);
+                int bs = ReliableSender.my_p2psocket.SendTo(md.theBytes, remoteEP);
                 using (new LockAndElevate(IsisSystem.RTS.Lock))
                 {
                     IsisSystem.RTS.UDPBsent += bs;
@@ -16981,9 +17324,9 @@ namespace Isis
 
         internal static bool ReMulticast(MsgDesc lgmd)
         {
-            if ((Isis.NOW() - lgmd.lastSentAt < 500) || lgmd.group == null || lgmd.group.gaddr == null || lgmd.group.my_socket == null || lgmd.thePayload == null)
+            if ((Isis.NOW() - lgmd.lastSentAt < 500) || lgmd.group == null || lgmd.group.gaddr == null || lgmd.group.my_socket == null || lgmd.theBytes == null)
                 return false;
-            if (!lgMulticast(lgmd.group, lgmd.thePayload))
+            if (!lgMulticast(lgmd.group, lgmd.theBytes))
                 return false;
             lgmd.lastSentAt = Isis.NOW();
             lgmd.retryDelay = Math.Min(500, Math.Max(50, lgmd.retryDelay));
@@ -17016,49 +17359,90 @@ namespace Isis
             return true;
         }
 
-        internal class TCPSockInfo
+        internal class TCPSockInfo: IDisposable
         {
             internal IPEndPoint remoteEndPoint;
             internal int which;
             internal Socket theSocket;
             internal Address dest;
-            internal object sendLock = new object();
-            internal object rcvLock = new object();
+            internal LockObject rcvLock = new LockObject("rcvLock", ThreadPriority.Highest);
+            internal LockObject sndLock = new LockObject("sndLock", ThreadPriority.Highest);
             internal LockObject siLock = new LockObject("siLock");
             internal BoundedBuffer TCPBB;
             internal Thread TCPSender;
+            internal Thread TCPReceiver;
+            internal long openedAt;
             internal long lastUsed;
-            internal static int id;
+            volatile internal bool closed = false;
+            internal bool initiatedByMe = false;
+            volatile internal int nwrites;
+            volatile internal int nreads;
+            internal int index;
+            internal static int cntr;
+            internal int lastISISMEMBERSViewDelta;
 
-            internal TCPSockInfo(Address d, IPEndPoint ep, Socket s, int w)
+            internal TCPSockInfo(Address d, IPEndPoint ep, Socket s, int w, bool ibm)
             {
-                if ((dest = d) == null)
-                    remoteEndPoint = ep;
-                else
-                    remoteEndPoint = AddressToIPEndpoint(d, w);
-                lastUsed = Isis.NOW();
+                remoteEndPoint = ((dest = d) == null)? ep: AddressToIPEndpoint(d, w);
+                lastUsed = openedAt = Isis.NOW();
+                initiatedByMe = ibm;
                 theSocket = s;
+                theSocket.SendTimeout = Isis.ISIS_DEFAULTTIMEOUT/3;
+                index = ++cntr;
                 TCPOverlaySetupSocket(s);
                 which = w;
-                int myid;
-                lock (sendLock)
-                    myid = id++;
-                string name = "TCPSender[" + myid + "]:" + d;
-                TCPBB = new BoundedBuffer(name, 32, ILock.LLTCP, -1, -1);
+                string name = "TCPSender[index=" + index + "]" + d;
+                TCPBB = new BoundedBuffer(name, 128, ILock.LLTCP, -1, -1, ThreadPriority.Highest);
                 TCPSender = new Thread(delegate()
                 {
+                    TCPSender.Priority = ThreadPriority.Highest;
                     try
                     {
                         object toSend;
                         while ((toSend = TCPBB.get()) != null)
                             doSendAllBytes(this, (byte[])toSend);
                     }
-                    catch (IsisShutdown) { }
-                    catch (BBDisposed) { }
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); };
+                    using (new LockAndElevate(TCPLock))
+                    {
+                        closed = true;
+                        if (TCPList.Contains(this))
+                            TCPList.Remove(this);
+                        TCPBB.put(null);
+                    }
+                    using (new LockAndElevate(siLock))
+                    {
+                        try
+                        {
+                            if (theSocket != null)
+                            {
+                                if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
+                                    Isis.WriteLine("Close dest=" + d + " " + TCPCnames[w] + ", byme=" + ibm + ", si.theSocket=" + theSocket.Handle);
+                                theSocket.Close();
+                            }
+                        }
+                        catch { }
+                    }
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 TCPSender.Name = name;
-                TCPSender.Priority = ThreadPriority.Highest;
                 TCPSender.Start();
+            }
+
+            public void Dispose()
+            {
+                Dispose(true);
+            }
+
+            private void Dispose(bool disposing)
+            {
+                if (disposing)
+                    BoundedBuffer.unregister(TCPBB);
+            }
+
+            ~TCPSockInfo()
+            {
+                Dispose(true);
             }
         };
 
@@ -17110,9 +17494,9 @@ namespace Isis
         internal const byte TCPC_P2PCH = 2;
         internal const byte TCPC_MSG = 3;
         internal const byte TCPC_CLOSE = 4;
-        internal const byte TCPC_DUPL = 5;
+        internal const byte TCPC_VDS = 5;
 
-        internal static string[] TCPCommands = new string[] { "seek you", "ack-channel", "p2p channel", "msg", "close", "dupl" };
+        internal static string[] TCPCommands = new string[] { "seek you", "ack-channel", "p2p channel", "msg", "close", "vds" };
 
         internal static int TCPHdrLen;
 
@@ -17177,6 +17561,7 @@ namespace Isis
                 Thread.CurrentThread.Name = "Draining toSend for " + si.dest + ", mode " + TCPCnames[si.which];
                 foreach (byte[] buf in toSend)
                     TCPSendTo(si.dest, buf, si.remoteEndPoint, si.which);
+                IsisSystem.ThreadTerminationMagic();
             }).Start();
         }
 
@@ -17201,13 +17586,12 @@ namespace Isis
                     }
                 TCPhdr tcphdr = new TCPhdr(TCPC_MSG, buf.Length);
                 using (new LockAndElevate(tcpSI.siLock))
-                    tcpSI.lastUsed = Isis.NOW();
-                lock (tcpSI.sendLock)
                 {
-                    byte[] ha = Msg.toBArray(tcphdr);
-                    SendAllBytes(tcpSI, ha);
-                    SendAllBytes(tcpSI, buf);
+                    tcpSI.lastUsed = Isis.NOW();
+                    tcpSI.nwrites++;
                 }
+                byte[] ha = Msg.toBArray(tcphdr);
+                SendAllBytes(tcpSI, ha, buf);
                 if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                     Isis.WriteLine("After TCPSnd<" + TCPCnames[which] + "> " + buf.Length);
             }
@@ -17218,16 +17602,32 @@ namespace Isis
                     Isis.WriteLine("TCP SendTo<" + TCPCnames[which] + "> " + buf.Length + " threw exception " + e);
                 if (tcpSI != null)
                     using (new LockAndElevate(TCPLock))
-                        TCPList.Remove(tcpSI);
+                    {
+                        tcpSI.TCPBB.put(null);
+                        if (TCPList.Contains(tcpSI))
+                            TCPList.Remove(tcpSI);
+                    }
             }
 
             if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                 Isis.WriteLine("tCPSendTo: After sending to " + ipept + ": " + TCPListState());
         }
 
-        private static void SendAllBytes(TCPSockInfo tcpSI, byte[] ha)
+        private static void SendAllBytes(TCPSockInfo tcpSI, byte[] hdr)
         {
-            tcpSI.TCPBB.put(ha);
+            SendAllBytes(tcpSI, hdr, null);
+        }
+
+        private static void SendAllBytes(TCPSockInfo tcpSI, byte[] hdr, byte[] body)
+        {
+            using (new LockAndElevate(tcpSI.sndLock))
+            {
+                if (tcpSI.TCPBB.putWillBlock(2))
+                    return;
+                tcpSI.TCPBB.put(hdr);
+                if (body != null)
+                    tcpSI.TCPBB.put(body);
+            }
         }
 
         private static void doSendAllBytes(TCPSockInfo tcpSI, byte[] ha)
@@ -17270,8 +17670,6 @@ namespace Isis
             if (dest != null && !dest.isNull())
                 target = AddressToIPEndpoint(dest, which);
             else
-                target = ipept;
-            if (target == null)
                 return null;
             TCPSockInfo tcpSI = null;
             using (new LockAndElevate(TCPLock))
@@ -17283,15 +17681,40 @@ namespace Isis
                 {
                     foreach (TCPSockInfo tsi in TCPList)
                         if (tsi.remoteEndPoint.Equals(target) && (tcpSI == null || IPEndpointCompare(tcpSI.remoteEndPoint, target) > 0 || tcpSI.lastUsed < tsi.lastUsed))
-                            tcpSI = tsi;
-                    lastFound = target;
-                    lasttcpSI = tcpSI;
+                        {
+                            lasttcpSI = tcpSI = tsi;
+                            lastFound = target;
+                        }
                 }
             }
             if (tcpSI != null)
                 using (new LockAndElevate(tcpSI.siLock))
                     tcpSI.lastUsed = Isis.NOW();
             return tcpSI;
+        }
+
+        internal static void CleanTCP()
+        {
+            List<TCPSockInfo> toClose = new List<TCPSockInfo>();
+            using (new LockAndElevate(TCPLock))
+            {
+                List<Address> allDests = new List<Address>(), unNeeded = new List<Address>();
+                foreach (TCPSockInfo tsi in TCPList)
+                    if (tsi.initiatedByMe && !allDests.Contains(tsi.dest))
+                        allDests.Add(tsi.dest);
+                foreach (Address d in allDests)
+                    if (Group.notNeeded(d))
+                        unNeeded.Add(d);
+                foreach (TCPSockInfo tsi in TCPList)
+                    if (unNeeded.Contains(tsi.dest) && (Isis.NOW()-tsi.openedAt) > 10000)
+                        toClose.Add(tsi);
+            }
+            foreach (TCPSockInfo tsi in toClose)
+            {
+                if ((IsisSystem.Debug & IsisSystem.TUNNELING) != 0)
+                    Isis.WriteLine("CleanTCP[NOW="+Isis.TimeToString(Isis.NOW())+"]: removing an unneeded TCP connection to " + tsi.dest + " [" + TCPCnames[tsi.which] + "]");
+                TCPClose(tsi, false);
+            }
         }
 
         private static IPEndPoint AddressToIPEndpoint(Address dest, int which)
@@ -17318,8 +17741,6 @@ namespace Isis
         internal static string TCPListState()
         {
             string s = "TCPListState:\r\n";
-            long oldDb = IsisSystem.Debug;
-            IsisSystem.Debug |= IsisSystem.VERBOSEADDRS;
             using (new LockAndElevate(TCPLock))
                 foreach (TCPSockInfo si in TCPList)
                 {
@@ -17333,41 +17754,54 @@ namespace Isis
                             byte[] b = si.remoteEndPoint.Address.GetAddressBytes();
                             d = b[0] + "." + b[1] + "." + b[2] + "." + b[3] + "::" + si.remoteEndPoint.Port;
                         }
-                        s += "  TCPList[" + d + "]{type=" + TCPCnames[si.which] + ", lastUsed=" + Isis.TimeToString(si.lastUsed) + ", socket=" + (si.theSocket == null ? "null" : si.theSocket.Handle.ToString()) + "}\r\n";
+                        s += "  TCPList[" + si.index + "; dest=" + d + "]{ByMe=" + si.initiatedByMe + ", " + (si.closed? "closed": "open") +
+                            ", type=" + TCPCnames[si.which] + ", lastUsed=" + Isis.TimeToString(si.lastUsed) +
+                            ", socket=" + (si.theSocket == null ? "null" : si.theSocket.Handle.ToString()) + 
+                            "}, nwrites=" + si.nwrites + ", nreads=" + si.nreads + "\r\n";
                     }
                 }
             using (new LockAndElevate(ConnectingLock))
                 foreach (AWPair awp in ConnectingTo)
                     s += "  TCP overlay is connecting to " + awp.dest + "::" + awp.which + ", pending send list has " + awp.toSend.Count() + " items\r\n";
-            IsisSystem.Debug = oldDb;
             return s;
+        }
+
+        internal static void TCPNoteVDS(Isis.ViewDelta[] vds)
+        {
+            if (vds.Length == 0)
+                return;
+            int lastvid = vds[vds.Length-1].prevVid;
+            List<TCPSockInfo> toSend = new List<TCPSockInfo>();
+            using (new LockAndElevate(TCPLock))
+                foreach (TCPSockInfo si in TCPList)
+                    if (si.lastISISMEMBERSViewDelta < lastvid)
+                    {
+                        si.lastISISMEMBERSViewDelta = lastvid;
+                        toSend.Add(si);
+                    }
+            foreach(TCPSockInfo si in toSend)
+            {
+                byte[] ba = Msg.toBArray(vds);
+                TCPhdr tcphdr = new TCPhdr(TCPC_VDS, ba.Length);
+                using (new LockAndElevate(si.siLock))
+                    ++si.nwrites;
+                byte[] ha = Msg.toBArray(tcphdr);
+                SendAllBytes(si, ha, ba);
+            }
         }
 
         internal static void TCPShutdown()
         {
             using (new LockAndElevate(TCPLock))
                 foreach (TCPSockInfo si in TCPList)
-                {
-                    using (new LockAndElevate(si.siLock))
-                    {
-                        try
-                        {
-                            si.TCPBB.put(null);
-                            si.theSocket.Close();
-                            callDispose(si);
-                        }
-                        catch
-                        {
-                        }
-                    }
-                }
+                    si.TCPBB.put(null);
         }
 
         private static void callDispose(TCPSockInfo si)
         {
-#if !MONO_MODE
+#if !__MonoCS__
             si.theSocket.Dispose();
-#endif // !MONO_MODE
+#endif // !__MonoCS__
         }
 
         internal static void TCPListCheck()
@@ -17378,17 +17812,16 @@ namespace Isis
                 foreach (TCPSockInfo tcpsi in TCPList)
                 {
                     using (new LockAndElevate(tcpsi.siLock))
-                        if (Isis.NOW() - tcpsi.lastUsed < 30000)
-                        {
-                            bool isDup = false;
-                            foreach (TCPSockInfo si in TCPList)
-                                if (si == tcpsi)
-                                    break;
-                                else if (si.dest.Equals(tcpsi.dest) && si.which == tcpsi.which && si.lastUsed > tcpsi.lastUsed)
-                                    isDup = true;
-                            if (!isDup)
-                                continue;
-                        }
+                    {
+                        bool isDup = false;
+                        foreach (TCPSockInfo si in TCPList)
+                            if (si == tcpsi)
+                                break;
+                            else if (si.dest.Equals(tcpsi.dest) && si.which == tcpsi.which)
+                                isDup = true;
+                        if (!isDup)
+                            continue;
+                    }
                     toDelete.Add(tcpsi);
                 }
             }
@@ -17419,12 +17852,14 @@ namespace Isis
         // getting it to behave itself (e.g. make the connection for just one of them)
         internal static Socket TCPConnectTo(Address dest, IPEndPoint remoteEP, int which, bool needLock, byte[] buf)
         {
+            TCPSockInfo si;
             if (!Isis.ISIS_TCP_ONLY)
                 throw new IsisException("TCPConnectTo but not in ISIS_TCP_ONLY mode!");
-            if (ConnectingToCheck(dest, buf, which, true))
+            if (dest.isMyAddress() || ConnectingToCheck(dest, buf, which, true))
                 return null;
-            if (FindTPCsi(dest, remoteEP, which) != null)
+            if ((si = FindTPCsi(dest, remoteEP, which)) != null)
             {
+                si.initiatedByMe = true;
                 if (buf != null)
                     TCPSendTo(dest, buf, remoteEP, which);
                 return null;
@@ -17435,7 +17870,7 @@ namespace Isis
                 s = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 TCPOverlaySetupSocket(s);
                 IAsyncResult result = s.BeginConnect((EndPoint)remoteEP, null, null);
-                result.AsyncWaitHandle.WaitOne(15000, true);
+                result.AsyncWaitHandle.WaitOne(30000, true);
                 if (!s.Connected)
                 {
                     if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
@@ -17472,18 +17907,22 @@ namespace Isis
                 return null;
             }
             if (!dest.isNull() && !dest.isMyAddress())
-            {
-                TCPSockInfo si = new TCPSockInfo(dest, remoteEP, s, which);
-                new Thread(delegate() { Thread.CurrentThread.Name = "ConnectTo socket for " + dest + ": mode = " + TCPCnames[which]; TCPReceiveOn(si, (which == ACKBB) ? AckBB : RecvBB, dest, which, false); }).Start();
-            }
+                new Thread(delegate()
+                {
+                    Thread.CurrentThread.Name = "ConnectTo socket for " + dest + ": mode = " + TCPCnames[which]; 
+                    TCPSockInfo TCPsi = new TCPSockInfo(dest, remoteEP, s, which, true);
+                    TCPReceiveOn(TCPsi, (which == ACKBB) ? AckBB : RecvBB, dest, which);
+                    terminate(TCPsi);
+                    IsisSystem.ThreadTerminationMagic();
+                }).Start();
             return s;
         }
 
         private static void callDispose(Socket s)
         {
-#if !MONO_MODE
+#if !__MonoCS__
             s.Dispose();
-#endif // !MONO_MODE
+#endif // !__MonoCS__
         }
 
         internal static void TCPListen()
@@ -17513,34 +17952,44 @@ namespace Isis
                             TCPSockInfo newConnect = null;
                             try
                             {
+                                Address dest;
+                                TCPhdr tcphdr;
                                 TCPOverlaySetupSocket(newSocket);
-                                newConnect = new TCPSockInfo(null, (IPEndPoint)newSocket.RemoteEndPoint, newSocket, which);
+                                newConnect = new TCPSockInfo(null, (IPEndPoint)newSocket.RemoteEndPoint, newSocket, which, false);
                                 if (TCPHdrLen == 0)
                                     TCPHdrLen = Msg.toBArray(new TCPhdr()).Length;
                                 byte[] hdr = new byte[TCPHdrLen];
-                                if (!RecvFixedlen(newConnect, TCPHdrLen, hdr))
+                                using (new LockAndElevate(newConnect.rcvLock))
                                 {
-                                    newSocket.Close();
-                                    callDispose(newSocket);
-                                    return;
+                                    if (!RecvFixedlen(newConnect, TCPHdrLen, hdr))
+                                    {
+                                        terminate(newConnect);
+                                        return;
+                                    }
+                                    tcphdr = (TCPhdr)Msg.BArrayToObjects(hdr)[0];
+                                    if (tcphdr.len != Isis.my_address_bytes.Length)
+                                    {
+                                        terminate(newConnect);
+                                        Isis.WriteLine("WARNING: Discarding an incoming packet because the TCP header length was " + tcphdr.len + " instead of " + Isis.my_address_bytes.Length);
+                                        return;
+                                    }
+                                    byte[] adr = new byte[tcphdr.len];
+                                    if (!RecvFixedlen(newConnect, tcphdr.len, adr))
+                                    {
+                                        terminate(newConnect);
+                                        return;
+                                    }
+                                    dest = (Address)Msg.BArrayToObjects(adr)[0];
                                 }
-                                TCPhdr tcphdr = (TCPhdr)Msg.BArrayToObjects(hdr)[0];
-                                if (tcphdr.len != Isis.my_address_bytes.Length)
-                                {
-                                    Isis.WriteLine("WARNING: Discarding an incoming packet because the TCP header length was " + tcphdr.len + " instead of " + Isis.my_address_bytes.Length);
-                                    return;
-                                }
-                                byte[] adr = new byte[tcphdr.len];
-                                if (!RecvFixedlen(newConnect, tcphdr.len, adr))
-                                {
-                                    newSocket.Close();
-                                    callDispose(newSocket);
-                                    return;
-                                }
-                                Address dest = (Address)Msg.BArrayToObjects(adr)[0];
                                 // Now that we know the true address, switch to using it.  The remoteEndPoint was only a temporary "fix"
+                                if (dest.isMyAddress())
+                                {
+                                    terminate(newConnect);
+                                    return;
+                                }
                                 newConnect.dest = dest;
                                 newConnect.remoteEndPoint = AddressToIPEndpoint(dest, which);
+                                newConnect.TCPBB.name += dest;
                                 Thread.CurrentThread.Name = "TCP receiver for " + dest + ": mode=" + TCPCommands[tcphdr.TCPCommand];
                                 if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                                     Isis.WriteLine("My new connection is from " + dest + ", command=" + TCPCommands[tcphdr.TCPCommand]);
@@ -17548,12 +17997,12 @@ namespace Isis
                                 {
                                     case TCPC_ACKCH:
                                     case TCPC_P2PCH:
-                                        TCPReceiveOn(newConnect, (tcphdr.TCPCommand == TCPC_P2PCH) ? RecvBB : AckBB, dest, tcphdr.TCPCommand, false);
+                                        TCPReceiveOn(newConnect, (tcphdr.TCPCommand == TCPC_P2PCH) ? RecvBB : AckBB, dest, tcphdr.TCPCommand);
+                                        terminate(newConnect);
                                         return;
 
                                     case TCPC_SEEKU:
-                                        newSocket.Close();
-                                        callDispose(newSocket);
+                                        terminate(newConnect);
                                         if (FindTPCsi(dest, null, which) != null)
                                             return;
                                         TCPConnectTo(dest, new IPEndPoint(dest.home, dest.p2pPort), RECVBB, true, null);
@@ -17567,64 +18016,76 @@ namespace Isis
                                         return;
 
                                     default:
+                                        terminate(newConnect);
                                         return;
                                 }
                             }
                             catch (Exception e)
                             {
                                 Isis.WriteLine("Exception: " + e);
-                                if (newSocket.IsBound)
-                                    newSocket.Close();
-                                callDispose(newSocket);
+                                terminate(newConnect);
                                 return;
                             }
                         }).Start();
                     }
                 }
                 catch { IsisSystem.Shutdown("IsisSystem.Shutdown from TCPListenOn: " + ws); }
+                IsisSystem.ThreadTerminationMagic();
             }).Start();
         }
 
-        internal static void TCPReceiveOn(TCPSockInfo si, BoundedBuffer bb, Address who, int which, bool receiveOne)
+        private static void terminate(TCPSockInfo newConnect)
+        {
+            newConnect.TCPBB.put(null);
+            try { newConnect.theSocket.Close(); }
+            catch { }
+            callDispose(newConnect.theSocket);
+        }
+
+        internal static void TCPReceiveOn(TCPSockInfo si, BoundedBuffer bb, Address who, int which)
         {
             if (!Isis.ISIS_TCP_ONLY)
                 throw new IsisException("TCPReceiveOn but not in ISIS_TCP_ONLY mode!");
             if (who.isMyAddress())
+            {
+                si.TCPBB.put(null);
                 return;
+            }
+            using (new LockAndElevate(si.rcvLock))
+            {
+                if (si.TCPReceiver != null)
+                {
+                    si.TCPBB.put(null);
+                    return;
+                }
+                si.TCPReceiver = Thread.CurrentThread;
+            }
             if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                Isis.WriteLine("TCPReceiveOn: " + who + ", " + TCPCnames[which] + "... entry with receiveOne=" + receiveOne + ", and " + TCPListState());
+                Isis.WriteLine("TCPReceiveOn: " + who + ", " + TCPCnames[which] + "... entry with " + TCPListState());
             if (si.dest == null)
                 si.dest = who;
-            if (FindTPCsi(who, null, which) == null)
+            if (si.which != which)
+                throw new IsisException("Confused in TCPReceiveOn");
+            bool fnd = false;
+            using (new LockAndElevate(TCPLock))
             {
-                using (new LockAndElevate(TCPLock))
-                {
-                    foreach (TCPSockInfo tcpsi in TCPList)
-                        if (tcpsi.dest.Equals(si.dest) && tcpsi.which == si.which)
-                        {
-                            TCPClose(si, true);
-                            return;
-                        }
-                    TCPList.Add(si);
-                }
-                ConnectingToDone(si);
-            }
-            else
-            {
-                // A duplicated entry: don't list it and complain to the guy who created it
-                TCPhdr Dupl = new TCPhdr(TCPC_DUPL, 0);
-                lock (si.sendLock)
-                    try
+                if (si.closed)
+                    return;
+                foreach (TCPSockInfo tcpsi in TCPList)
+                    if (tcpsi.dest.Equals(si.dest) && tcpsi.which == which)
                     {
-                        int bs = si.theSocket.Send(Msg.toBArray(Dupl));
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                        {
-                            IsisSystem.RTS.TCPBsent += bs;
-                            IsisSystem.RTS.TCPsent++;
-                        }
+                        fnd = true;
+                        break;
                     }
-                    catch { }
+                if (!fnd)
+                    TCPList.Add(si);
             }
+            if (fnd)
+            {
+                TCPClose(si, true);
+                return;
+            }
+            ConnectingToDone(si);
             byte[] lb = new byte[4];
             while (IsisSystem.IsisActive)
             {
@@ -17636,144 +18097,133 @@ namespace Isis
                     if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                         Isis.WriteLine("RECEIVING ON :" + si.remoteEndPoint);
                     byte[] hdr = new byte[TCPHdrLen];
-                    if (!RecvFixedlen(si, TCPHdrLen, hdr))
+                    using (new LockAndElevate(si.rcvLock))
                     {
-                        if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                            Isis.WriteLine("Connection disrupted (channel broke) when trying to read TCP channel header, closing it");
-                        TCPClose(si, false);
-                        break;
-                    }
-                    object[] hdrAsObjs = Msg.BArrayToObjects(hdr);
-                    if (hdrAsObjs == null || hdrAsObjs.Length == 0 || !hdrAsObjs[0].GetType().Equals(typeof(TCPhdr)))
-                    {
-                        if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                            Isis.WriteLine("Connection disrupted (damaged message) when trying to read TCP channel header, closing it");
-                        TCPClose(si, false);
-                        break;
-                    }
-                    TCPhdr tcphdr = (TCPhdr)hdrAsObjs[0];
-                    if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                        Isis.WriteLine("RECEIVED HEADER, command=" + TCPCommands[tcphdr.TCPCommand]);
-                    switch (tcphdr.TCPCommand)
-                    {
-                        case TCPC_ACKCH:
-                            throw new IsisException("Unexpected ACK handshake");
-
-                        case TCPC_P2PCH:
-                            throw new IsisException("Unexpected P2P handshake");
-
-                        case TCPC_MSG:
-                            byte[] buf = new byte[tcphdr.len];
-                            RecvFixedlen(si, tcphdr.len, buf);
+                        if (!RecvFixedlen(si, TCPHdrLen, hdr))
+                        {
                             if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                                Isis.WriteLine("TCPRcv<socket=" + si.theSocket.Handle + "; " + TCPCnames[which] + "> " + buf.Length);
-                            bb.put(buf);
+                                Isis.WriteLine("Connection disrupted (channel broke) when trying to read TCP channel header, closing it");
+                            TCPClose(si, false);
                             break;
+                        }
+                        object[] hdrAsObjs = Msg.BArrayToObjects(hdr);
+                        if (hdrAsObjs == null || hdrAsObjs.Length == 0 || !hdrAsObjs[0].GetType().Equals(typeof(TCPhdr)))
+                        {
+                            if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
+                                Isis.WriteLine("Connection disrupted (damaged message) when trying to read TCP channel header, closing it");
+                            TCPClose(si, false);
+                            break;
+                        }
+                        TCPhdr tcphdr = (TCPhdr)hdrAsObjs[0];
+                        if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
+                            Isis.WriteLine("RECEIVED HEADER from " + si.dest + ", command=" + TCPCommands[tcphdr.TCPCommand] + ", len=" + tcphdr.len);
+                        switch (tcphdr.TCPCommand)
+                        {
+                            case TCPC_ACKCH:
+                            case TCPC_P2PCH:
+                                {
+                                    if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
+                                        Isis.WriteLine("Connection disrupted (unexpected ackch/p2pch) when trying to read TCP channel header, closing it");
+                                    TCPClose(si, true);
+                                    return;
+                                }
 
-                        case TCPC_CLOSE:
-                            TCPClose(si, true);
-                            return;
+                            case TCPC_MSG:
+                                byte[] buf = new byte[tcphdr.len];
+                                using (new LockAndElevate(si.siLock))
+                                    ++si.nreads;
+                                if (RecvFixedlen(si, tcphdr.len, buf))
+                                {
+                                    if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
+                                        Isis.WriteLine("TCPRcv<socket=" + si.theSocket.Handle + "; " + TCPCnames[which] + "> remote partner= " + si.dest + " received " + buf.Length);
+                                    bb.put(buf);
+                                }
+                                break;
 
-                        case TCPC_DUPL:
-                            bool closeit = false;
-                            using (new LockAndElevate(TCPLock))
-                                foreach (TCPSockInfo tcpsi in TCPList)
-                                    if (si != tcpsi && si.dest.Equals(tcpsi.dest) && si.which == tcpsi.which)
-                                    {
-                                        using (new LockAndElevate(si.siLock))
-                                            si.lastUsed = -1;
-                                        closeit = true;
-                                    }
-                            if (closeit)
-                            {
+                            case TCPC_CLOSE:
                                 TCPClose(si, true);
                                 return;
-                            }
-                            break;
+
+                            case TCPC_VDS:
+                                using (new LockAndElevate(si.siLock))
+                                    ++si.nreads;
+                                byte[] vdba = new byte[tcphdr.len];
+                                if (RecvFixedlen(si, tcphdr.len, vdba))
+                                {
+                                    object[] obs = Msg.BArrayToObjects(vdba, typeof(Isis.ViewDelta[]));
+                                    if (Isis.ISISMEMBERS != null && obs != null && obs.Length == 1)
+                                        Isis.ISISMEMBERS.gotNewViewDeltas((Isis.ViewDelta[])obs[0]);
+                                }
+                                break;
+                        }
                     }
                 }
                 catch (Exception e) { Isis.WriteLine("TCPReceiveOn: " + e); return; }
-                if (receiveOne)
-                    return;
             }
         }
 
         internal static void TCPClose(TCPSockInfo si, bool gotClose)
         {
+            TCPSockInfo meToo = null;
             if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                 Isis.WriteLine("TCPClose for " + (si.dest == null ? "null-channel id" : si.dest.ToString()) + ", gotClose=" + gotClose);
             using (new LockAndElevate(TCPLock))
+            {
+                if (si.closed)  // True after the socket reader reads a null from the BB
+                    return;
                 if (TCPList.Contains(si))
                     TCPList.Remove(si);
-            if (!gotClose)
-            {
-                TCPhdr CloseIt = new TCPhdr(TCPC_CLOSE, 0);
-                lock (si.sendLock)
-                    try
-                    {
-                        int bs = si.theSocket.Send(Msg.toBArray(CloseIt));
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                        {
-                            IsisSystem.RTS.TCPBsent += bs;
-                            IsisSystem.RTS.TCPsent++;
-                        }
-                    }
-                    catch { }
-            }
-            using (new LockAndElevate(si.siLock))
-            {
-                try
+                if (!gotClose)
                 {
-                    if (si.theSocket != null)
-                    {
-                        if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
-                            Isis.WriteLine("Close si.theSocket=" + si.theSocket.Handle + " (TCPClose(gotClose=" + gotClose + ")");
-                        si.theSocket.Close();
-                    }
+                    TCPhdr CloseIt = new TCPhdr(TCPC_CLOSE, 0);
+                    si.TCPBB.put(Msg.toBArray(CloseIt));
                 }
-                catch { }
+                si.TCPBB.put(null);
+                // If I closed one of the two connections, close the other as well
+                foreach (TCPSockInfo osi in TCPList)
+                    if (osi.dest.Equals(si.dest) && osi.which != si.which && osi.initiatedByMe == si.initiatedByMe)
+                        meToo = osi;
             }
-            si.TCPBB.put(null);
             if ((IsisSystem.Debug & IsisSystem.TCPOVERLAY) != 0)
                 Isis.WriteLine("TCPClose finished, new state: " + TCPListState());
+            if (meToo != null)
+                TCPClose(meToo, false);
         }
 
+        // Call with a lock on si.rcvLock
         private static bool RecvFixedlen(TCPSockInfo si, int len, byte[] buf)
         {
             int tryLimit = 25;
-            lock (si.rcvLock)
+            int idx = 0;
+            while (len > 0)
             {
-                int idx = 0;
-                while (len > 0)
+                int nb;
+                try
                 {
-                    int nb;
-                    try
+                    nb = si.theSocket.Receive(buf, idx, len, SocketFlags.None);
+                    using (new LockAndElevate(IsisSystem.RTS.Lock))
                     {
-                        nb = si.theSocket.Receive(buf, idx, len, SocketFlags.None);
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                        {
-                            IsisSystem.RTS.TCPBrcvd += nb;
-                            IsisSystem.RTS.TCPrcvd++;
-                        }
+                        IsisSystem.RTS.TCPBrcvd += nb;
+                        IsisSystem.RTS.TCPrcvd++;
                     }
-                    catch (SocketException e)
-                    {
-                        if (e.SocketErrorCode != SocketError.WouldBlock || --tryLimit == 0)
-                            return false;
-                        nb = 0;
-                        Thread.Sleep(25);
-                    }
-                    catch
-                    {
-                        return false;
-                    }
-                    idx += nb;
-                    len -= nb;
                 }
+                catch (SocketException e)
+                {
+                    if (e.SocketErrorCode != SocketError.WouldBlock || --tryLimit == 0)
+                        return false;
+                    nb = 0;
+                    Thread.Sleep(25);
+                }
+                catch
+                {
+                    return false;
+                }
+                idx += nb;
+                len -= nb;
             }
             using (new LockAndElevate(si.siLock))
                 si.lastUsed = Isis.NOW();
-            return true;
+            return len == 0;
         }
 
         static bool tokenThreadActive = false;
@@ -17836,6 +18286,7 @@ namespace Isis
                 Isis.WriteLine("WARNING: Token thread exited abnormally with exception " + e);
                 throw new IsisException("Dead token thread");
             }
+            IsisSystem.ThreadTerminationMagic();
         }
 
         internal static void beTokenThread()
@@ -18039,7 +18490,7 @@ namespace Isis
                     Thread.Sleep(Math.Max(2, tokenDelay));
                 }
             }
-            catch (IsisShutdown) { }
+            catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
         }
 
         private static void pingLast(Group.tokenInfo tp, TThreadTuple tokenSummary, int slevel)
@@ -18518,8 +18969,10 @@ namespace Isis
 
         internal static void doSend(bool p2p, object s, Group g, byte type, Address dest, byte[] buffer, int vid, int MsgID, bool localSender, P2PDeliveryCallback dcb)
         {
+            if (!IsisSystem.IsisActive && IsisSystem.IsisWasActive)
+                return;
             if ((IsisSystem.Debug & IsisSystem.TOKENSTABILITY) != 0)
-                Isis.WriteLine("doSend: type=" + type + ", group=<" + (g == null ? "null" : g.gname) + ">; dest=" + dest + ":" + vid + "::" + MsgID);
+                Isis.WriteLine("network.doSend: type=" + type + ", group=<" + (g == null ? "null" : g.gname) + ">; dest=" + dest + ":" + vid + "::" + MsgID);
             if ((IsisSystem.Debug & IsisSystem.LOWLEVELMSGS) != 0)
                 using (new LockAndElevate(ackInfoLock))
                     ackInfo.Add("[" + Isis.TimeToString(Isis.NOW()) + "]: doSend p2p=" + p2p + ", g=" + (g == null ? "null" : g.gname) + ", " + dest + "::" + vid + ":" + MsgID + "\r\n");
@@ -18593,29 +19046,34 @@ namespace Isis
             // Do the action as a thread because we're called from the resender thread
             Thread st = new Thread(delegate()
             {
-                MCMDSocket s = g.my_socket;
-                if ((g.GroupOpen || !g.WasOpen) && s != null && g.HasFirstView)
+                try
                 {
-                    View v;
-                    using (new LockAndElevate(g.ViewLock))
-                        v = g.theView;
-                    byte[] mba = Msg.NewMsgAsBArray(Isis.my_address, g.gaddr, 0, -1, 0L, 0, 0, (byte)0, new byte[0]);
-                    if (!Isis.ISIS_UNICAST_ONLY)
+                    MCMDSocket s = g.my_socket;
+                    if ((g.GroupOpen || !g.WasOpen) && s != null && g.HasFirstView)
                     {
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                            IsisSystem.RTS.StabilitySent++;
-                        socketSend(false, s, g.gaddr, g, Msg.STABILITYINFO, 0, mba, null, 0, -1, true, null);
+                        View v;
+                        using (new LockAndElevate(g.ViewLock))
+                            v = g.theView;
+                        byte[] mba = Msg.NewMsgAsBArray(Isis.my_address, g.gaddr, 0, -1, 0L, 0, 0, (byte)0, new byte[0]);
+                        if (!Isis.ISIS_UNICAST_ONLY)
+                        {
+                            using (new LockAndElevate(IsisSystem.RTS.Lock))
+                                IsisSystem.RTS.StabilitySent++;
+                            socketSend(false, s, g.gaddr, g, Msg.STABILITYINFO, 0, mba, null, 0, -1, true, null);
+                        }
+                        else foreach (Address dest in v.members)
+                                if (!dest.isMyAddress())
+                                    socketSend(true, my_p2psocket, dest, g, Msg.STABILITYINFO, 0, mba, null, 0, -1, true, null);
                     }
-                    else foreach (Address dest in v.members)
-                            if (!dest.isMyAddress())
-                                socketSend(true, my_p2psocket, dest, g, Msg.STABILITYINFO, 0, mba, null, 0, -1, true, null);
+                    using (new LockAndElevate(g.GroupFlagsLock))
+                    {
+                        g.flags &= ~Group.G_SENDINGSTABILITY;
+                        g.SentStableAt = Isis.NOW();
+                        g.MaxBacklogSent = 0;
+                    }
                 }
-                using (new LockAndElevate(g.GroupFlagsLock))
-                {
-                    g.flags &= ~Group.G_SENDINGSTABILITY;
-                    g.SentStableAt = Isis.NOW();
-                    g.MaxBacklogSent = 0;
-                }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             });
             st.Name = "<" + g.gname + ">: send stability";
             st.Priority = ThreadPriority.Highest;
@@ -18624,7 +19082,6 @@ namespace Isis
         }
 
         internal static int Counter;
-        internal static LockObject SendLock = new LockObject("SendLock");
 
         internal static void socketSend(bool p2p, object os, Address dest, Group g, byte type, byte code, byte[] originalBuffer, byte[] bufferAsGiven, int vid, int MsgID, bool localSender, P2PDeliveryCallback dcb)
         {
@@ -18646,11 +19103,9 @@ namespace Isis
             }
 
             int myCounter;
-            using (new LockAndElevate(SendLock))
-            {
-                using (new LockAndElevate(PendingSendBufferLock))
-                    myCounter = ++Counter;
-            }
+
+            using (new LockAndElevate(PendingSendBufferLock))
+                myCounter = ++Counter;
 
             if (originalBuffer.Length > Isis.ISIS_MUSTFRAGMENT && (code & SENTBYFRAGGER) == 0 && !Isis.ISIS_TCP_ONLY)
             {
@@ -18926,9 +19381,8 @@ namespace Isis
                         if (d.isMyAddress() || v.hasFailed[i])
                             continue;
                         bool seemsHealthy = false;
-                        using (new LockAndElevate(Isis.RIPLock))
-                            if (!Isis.RIPList.Contains(dest))
-                                seemsHealthy = true;
+                        if (!Isis.RIPList.Contains(dest))
+                            seemsHealthy = true;
                         if (seemsHealthy)
                         {
                             if (!Isis.RIPList.Contains(d))
@@ -19006,13 +19460,14 @@ namespace Isis
                             byte[] buffer = RecieveOne(os);
                             AddToReceiveBB(buffer, true);
                         }
-                        catch (IsisShutdown) { }
+                        catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
                         catch (Exception e)
                         {
                             if (IsisSystem.IsisActive)
                                 throw new IsisException("Dedicated receiver thread threw Exception: " + e);
                         }
                     }
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 t.Name = "Dedicated P2P receiver thread";
                 t.Priority = ThreadPriority.Highest;
@@ -19029,7 +19484,12 @@ namespace Isis
             int len;
             do
             {
-                len = ((Socket)os).Receive(buffer);
+                try
+                {
+                    len = ((Socket)os).Receive(buffer);
+                }
+                catch (SocketException) { len = 0; }
+                catch (IOException) { len = 0; }
                 IsisSystem.RTS.ThreadCntrs[30]++;
             }
             while (!Msg.VerifySignature(buffer, 0, len));
@@ -19092,7 +19552,7 @@ namespace Isis
                     buffer = (byte[])RecvBB.get();
                 else
                     buffer = RecieveOne((Socket)os);
-                if (buffer == null)
+                if (buffer == null || (!IsisSystem.IsisActive && IsisSystem.IsisWasActive))
                     return;
             }
             else if ((buffer = ((MCMDSocket)os).Receive()) == null)
@@ -19115,6 +19575,7 @@ namespace Isis
                 long before = Isis.NOW();
                 Msg.InvokeFromBArray(buffer, (RDel)delegate(byte type, byte code, int UID, Address sender, Address dest, Address gaddr, int minStable, int remoteBacklog, byte[] buf)
                 {
+                    // Isis.WriteLine("RecvBB.Get: type=" + type + ", code=" + code + ", UID=" + UID + ", sender=" + sender + ", dest=" + dest + ", gaddr=" + gaddr + " minStable=" + minStable + ", remoteBacklog=" + remoteBacklog + ", buf.len=" + buf.Length);
                     ReliableSender.noteRemoteBacklog(sender, remoteBacklog);
                     if (sender == null || dest == null || gaddr == null || buf == null || (g != null && !g.GroupOpen && g.WasOpen))
                     {
@@ -19175,6 +19636,7 @@ namespace Isis
                     if ((code & ISFRAG) != 0)
                         m.flags |= Msg.FRAGGED;
                     List<MReplayMe> mae = (g == null) ? null : g.MsgArrivedEarly;
+                    m.offWire = buffer;
                     if (g == null && IsisSystem.RTS.rcvProcessingBeganAt > 0 && (Isis.NOW() - IsisSystem.RTS.rcvProcessingBeganAt) > 2500)
                         Isis.WriteLine("WARNING: In receive thread needed " + (Isis.NOW() - IsisSystem.RTS.rcvProcessingBeganAt) + " ms to extract message!");
                     if (GotIncoming(type, gaddr, sender, minStable, m, g == null))
@@ -19216,8 +19678,13 @@ namespace Isis
             }
             catch (IsisException)
             {
+                if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
+                    Isis.WriteLine("Instantly discarding an incoming multicast: misformatted");
                 using (new LockAndElevate(IsisSystem.RTS.Lock))
+                {
+                    IsisSystem.RTS.Discarded++;
                     IsisSystem.RTS.rcvProcessingBeganAt = 0;
+                }
                 Thread.Sleep(10);
                 return;
             }
@@ -19247,8 +19714,7 @@ namespace Isis
             if ((IsisSystem.Debug & IsisSystem.LOOPBACK) != 0)
                 Isis.WriteLine("LoopBack: type=" + type + ", gaddr=" + gaddr + ", sender=" + sender + ", minStable=" + minStable + "\r\n  " + m);
             BoundedBuffer lbBB;
-            if (gaddr == null)
-                gaddr = Isis.NULLADDRESS;
+            gaddr = gaddr ?? Isis.NULLADDRESS;
             using (new LockAndElevate(lbBufferLock))
             {
                 if (!lbBufferList.TryGetValue(gaddr, out lbBB))
@@ -19270,10 +19736,8 @@ namespace Isis
                                 GotIncoming(lbi.lbtype, gaddr, lbi.lbsender, lbi.lbminStable, lbi.lbMsg, false);
                             }
                         }
-                        catch (IsisShutdown) { }
-                        using (new LockAndElevate(lbBufferLock))
-                            lbBufferList.Remove(gaddr);
-                        BoundedBuffer.unregister(lbBB);
+                        catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                        IsisSystem.ThreadTerminationMagic();
                     });
                     string gname = "non-group P2P messages";
                     Group g = Group.doLookup(gaddr);
@@ -19310,6 +19774,8 @@ namespace Isis
             if ((type == Msg.FIFOCAST || type == Msg.UNORDERED) && gaddr.isNull())
                 gaddr = m.dest;
             Group g = Group.doLookup(gaddr);
+            if (g == null || (g.flags & Group.G_ISLARGE) == 0)
+                m.offWire = null;
             return doGotIncoming(type, gaddr, sender, minStable, m, g, trackEvents);
         }
 
@@ -19317,8 +19783,8 @@ namespace Isis
 
         internal static bool doGotIncoming(byte type, Address gaddr, Address sender, int minStable, Msg m, Group g, bool trackEvents)
         {
-            if (type != Msg.ISPING && ((IsisSystem.Debug & IsisSystem.MESSAGELAYER) != 0 || ((IsisSystem.Debug & IsisSystem.LOOPBACK) != 0 && type == Msg.ISLOOPBACK)))
-                Isis.WriteLine("doGotIncoming: type " + type + ", gaddr " + gaddr + ", sender " + sender + ", minStable " + minStable + "  " + m);
+            if (!IsisSystem.IsisActive && IsisSystem.IsisWasActive)
+                return false;
             switch (type)
             {
                 default:
@@ -19337,13 +19803,19 @@ namespace Isis
                         g.CheckForFutureViews(m);
                         P2PSequencer.P2PCBWhenReady(m.sender, m, g.enqueueForGroupDelivery);
                     }
-                    else using (new LockAndElevate(Group.GroupRIPLock))
+                    else
+                    {
+                        bool stashIt = false;
+                        using (new LockAndElevate(Group.GroupRIPLock))
                             if (!Group.GroupRIPList.Contains(gaddr))
-                            {
-                                // Tuck away for replay after the group gets created
-                                Group.stashMsg(sender, gaddr, minStable, m);
-                                return false;
-                            }
+                                stashIt = true;
+                        if(stashIt)
+                        {
+                            // Tuck away for replay after the group gets created
+                            Group.stashMsg(sender, gaddr, minStable, m);
+                            return false;
+                        }
+                    }
                     break;
 
                 case Msg.ISPING:
@@ -19551,7 +20023,7 @@ namespace Isis
 
         internal static List<SentNack> SentNacksTo = new List<SentNack>();
         internal static List<SentP2PNack> SentP2PNacksTo = new List<SentP2PNack>();
-        internal static LockObject SentNacksLock = new LockObject("SendNacksLock");
+        internal static LockObject SentNacksLock = new LockObject("SendNacksLock", ThreadPriority.Highest);
 
         internal static void SendNack(Group g, Address SendTo, Address MsgSender, int MsgVid, int MsgMsgid)
         {
@@ -19877,10 +20349,10 @@ namespace Isis
                         }
                     }
                 }
-                catch (IsisShutdown) { }
-                catch (ThreadAbortException) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
                 if (IsisSystem.IsisActive)
                     throw new IsisException("ackProcessingThread has failed");
+                IsisSystem.ThreadTerminationMagic();
             });
             ackProcessingThread.Name = "Ack processing thread";
             ackProcessingThread.Priority = ThreadPriority.Highest;
@@ -19899,7 +20371,12 @@ namespace Isis
                         int rlen;
                         do
                         {
-                            rlen = s.Receive(b);
+                            try
+                            {
+                                rlen = s.Receive(b);
+                            }
+                            catch (IOException) { rlen = 0; }
+                            catch (SocketException) { rlen = 0; }
                             IsisSystem.RTS.ThreadCntrs[0]++;
                         }
                         while (!Msg.VerifySignature(b, 0, rlen));
@@ -19907,24 +20384,24 @@ namespace Isis
 
                         if (rlen > Isis.ISIS_MAXMSGLEN)
                             Isis.WriteLine("WARNING (b): MAXMSGLEN set to " + Isis.ISIS_MAXMSGLEN + ", but received length=" + rlen);
-                        if (rlen == 0)
-                            throw new IOException("EOF in AckSocketReader");
-                        Isis.ArrayResize<byte>(ref b, rlen);
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
+                        if (rlen > 4)
                         {
-                            IsisSystem.RTS.ackedAt = Isis.NOW();
-                            if ((IsisSystem.Debug & IsisSystem.LOWLEVELMSGS) != 0)
-                                using (new LockAndElevate(ackInfoLock))
-                                    ackInfo.Add("[" + Isis.TimeToString(Isis.NOW()) + "]: Receive(ack-socket)\r\n");
+                            Isis.ArrayResize<byte>(ref b, rlen);
+                            using (new LockAndElevate(IsisSystem.RTS.Lock))
+                            {
+                                IsisSystem.RTS.ackedAt = Isis.NOW();
+                                if ((IsisSystem.Debug & IsisSystem.LOWLEVELMSGS) != 0)
+                                    using (new LockAndElevate(ackInfoLock))
+                                        ackInfo.Add("[" + Isis.TimeToString(Isis.NOW()) + "]: Receive(ack-socket)\r\n");
+                            }
+                            AckBB.put(b, true);
+                            IsisSystem.RTS.check();
+                            using (new LockAndElevate(IsisSystem.RTS.Lock))
+                                IsisSystem.RTS.ackedAt = 0;
                         }
-                        AckBB.put(b, true);
-                        IsisSystem.RTS.check();
-                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                            IsisSystem.RTS.ackedAt = 0;
                     }
                 }
-                catch (IsisShutdown) { }
-                catch (ThreadAbortException) { }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
                 if (IsisSystem.IsisActive)
                     throw new IsisException("ack receiver thread has failed");
             }
@@ -20142,6 +20619,11 @@ namespace Isis
                             toResendSema.WaitOne();
                             using (new LockAndElevate(toResendLock))
                             {
+                                if (toResend.Count() == 0)
+                                    if (!IsisSystem.IsisActive)
+                                        return;
+                                    else
+                                        throw new IsisException("toResend shouldn't be empty");
                                 o = toResend.First();
                                 toResend.Remove(o);
                             }
@@ -20157,15 +20639,15 @@ namespace Isis
                                     if (Isis.ISIS_TCP_ONLY)
                                     {
                                         if (Isis.ISISMEMBERS != null && Isis.ISISMEMBERS.HasFirstView)
-                                            Isis.ISISMEMBERS.UDPTunnel(md.dest, md.retryCnt, md.thePayload, 0);
+                                            Isis.ISISMEMBERS.UDPTunnel(md.dest, md.retryCnt, md.theBytes, 0);
                                         else if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
                                             Isis.WriteLine("WARNING: Unable to respond to a NACK because ISISMEMBERS isn't intialized yet.");
                                     }
                                     else
                                     {
                                         IPEndPoint target = new IPEndPoint(md.dest.home, md.dest.p2pPort);
-                                        ReliableSender.CheckLen(md.thePayload);
-                                        int bs = my_p2psocket.SendTo(md.thePayload, target);
+                                        ReliableSender.CheckLen(md.theBytes);
+                                        int bs = my_p2psocket.SendTo(md.theBytes, target);
                                         using (new LockAndElevate(IsisSystem.RTS.Lock))
                                         {
                                             IsisSystem.RTS.UDPBsent += bs;
@@ -20186,9 +20668,9 @@ namespace Isis
                                     ReliableSender.SendP2P(m.type, from, theGroup, ResendForm(m), false);
                             }
                         }
-                        catch (ThreadAbortException) { return; }
-                        catch (IsisShutdown) { return; }
+                        catch (IsisShutdown) {  break; }
                     }
+                    IsisSystem.ThreadTerminationMagic();
                 });
                 ackNackResenderThread.Name = "Ack/Nack resender thread";
                 ackNackResenderThread.Priority = ThreadPriority.Highest;
@@ -20287,7 +20769,7 @@ namespace Isis
 
         internal static Msg ResendForm(Msg m)
         {
-            return (m.asReceived == null) ? m : m.asReceived;
+            return m.asReceived ?? m;
         }
 
         internal static void GotP2PNack(Address requestedBy, int p2pseqn)
@@ -20461,8 +20943,11 @@ namespace Isis
         /// The body of the message, encoded into a byte array
         /// </summary>
         public byte[] payload;
+
+
         internal byte[] cipherPayload;   // Non-null if a cipher copy of the payload is available
         internal Msg asReceived;         // Non-null for the first fragment of a fragmented message so that p2p retransmission off unstable list will work
+        internal byte[] offWire;         // As it came off the wire
         internal Group.CompletionTag ct; // Non-null for a safe message being delivered
 
         // Cached, for speed
@@ -20873,10 +21358,7 @@ namespace Isis
         // Used to preserve strong typing "to the last step"
         internal static byte[] NewMsgAsBArray(Address sender, Address gaddr, int vid, int msgid, long Lid, int nRaw, int UID, byte flag, byte[] buffer)
         {
-            byte[] ba = toBArray(sender, gaddr, vid, msgid, Lid, nRaw, UID, flag, buffer);
-            if (ba.Length > Isis.ISIS_MAXMSGLENTOTAL)
-                throw new IsisException("Generated a message of length " + ba + " bytes, exceeding compiled limit of " + Isis.ISIS_MAXMSGLENTOTAL + "bytes");
-            return ba;
+            return toBArray(sender, gaddr, vid, msgid, Lid, nRaw, UID, flag, buffer);
         }
 
         /// <summary>
@@ -21755,7 +22237,7 @@ namespace Isis
         internal static object[] BArrayToObjects(bool inhibitException, byte[] payload, params Type[] types)
         {
             object[] obs = BArrayToObjects(payload);
-            if (obs.Length != types.Length)
+            if (obs.Length != types.Length || (types.Length == 1 && types[0].IsArray && obs.Length == 1 && !obs[0].GetType().IsArray))
             {
                 if (types.Length == 1 && types[0].IsArray)
                 {
@@ -21862,7 +22344,8 @@ namespace Isis
                 if (lastPayloadArg == payload && lastPayloadLen == payload.Length && lastStart == start && lastLen == len)
                     return lastObs;
             int idx;
-            if (payload == null || len == 0) throw new ArgumentNullException("Msg.BArrayToObjects");
+            if (payload == null || len == 0)
+                return new object[0];
             int index = start;
             int nobs = (int)payload[index++];
             nobs = (nobs << 8) | payload[index++];
@@ -22207,7 +22690,14 @@ namespace Isis
 
                     default:
                         if (UserDefinedTypesTable[conv] == null)
-                            throw new IsisException("Msg.BArrayToObjects -- invalid object type [" + conv + "]");
+                        {
+                            string pcnts = " ";
+                            foreach (byte b in payload)
+                                pcnts += b.ToString("X2") + " ";
+                            Isis.WriteLine("WARNING: Msg.BArrayToObjects was unable to demarshall a byte array... Payload.len = " +
+                                payload.Length + ", contents = [" + pcnts + "], start=" + start + ", len=" + len);
+                            return new object[0];
+                        }
 
                         // Note: no need to retain the lock; it functions as a barrier in this case because the table entry is write-once
                         byte[] ba = new byte[plen];
@@ -22426,15 +22916,14 @@ namespace Isis
             {
                 try
                 {
-                    while (!IsisSystem.IsisActive)
-                        Thread.Sleep(250);
-                    // Remap after Isis.ISIS_REMAPDELAY
-                    try { Thread.Sleep(Isis.ISIS_REMAPDELAY); }
-                    catch { }
+                    while (!IsisSystem.IsisWasActive)
+                        Thread.Sleep(1000);
+                    while (IsisSystem.IsisActive && (Isis.ISISMEMBERS == null || Isis.ISISMEMBERS.theToken == null || !Isis.ISISMEMBERS.theToken.IAmLgOwner))
+                        Thread.Sleep(1000);
                     while (IsisSystem.IsisActive)
                     {
                         IsisSystem.RTS.ThreadCntrs[26]++;
-                        if (Isis.ISISMEMBERS.theView != null && Isis.ISISMEMBERS.theView.IAmLeader())
+                        if (Isis.ISISMEMBERS != null && Isis.ISISMEMBERS.theView != null && Isis.ISISMEMBERS.theView.IAmLeader())
                         {
                             if ((IsisSystem.Debug & IsisSystem.MCMDMAP) != 0)
                                 Isis.WriteLine("Recomputing MCMD Mapping!");
@@ -22444,15 +22933,25 @@ namespace Isis
                             Isis.ISISMEMBERS.doSend(false, false, Isis.REMAP, Isis.MapperEpochId, MCMDvirtual.GetMapAll());
                             WaitForAggRate(Isis.MapperEpochId++);
                         }
-                        // REMAP subsequently runs every two minutes in this version of Isis
-                        try { Thread.Sleep(Isis.ISIS_REMAPDELAY); }
-                        catch { }
+                        RemapDelay();
                     }
                 }
-                catch (IsisShutdown) { ReMappingThread = null; }
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                IsisSystem.ThreadTerminationMagic();
             });
             ReMappingThread.Name = "MCMD Remapping task";
             ReMappingThread.Start();
+        }
+
+        private static void RemapDelay()
+        {
+            long waiting = 0;
+            while (IsisSystem.IsisActive)
+            {
+                Thread.Sleep(1000);
+                if ((waiting += 1000) > Isis.ISIS_REMAPDELAY)
+                    break;
+            }
         }
 
         internal static void InitializeMap(Address who, string[] gnames, Address[] gaddrs)
@@ -22462,12 +22961,6 @@ namespace Isis
             Address[] jlist = Isis.Expand(new Address[] { who });
             foreach (Address j in jlist)
                 Isis.ISISMEMBERS.doP2PSend(j, true, Isis.REMAP, MCMDvirtual.GetMapList(gnames, gaddrs));
-        }
-
-        internal static void AbortRemappingTask()
-        {
-            if (ReMappingThread != null)
-                ReMappingThread.Abort();
         }
 
         internal class MCMDvirtual
@@ -22607,21 +23100,15 @@ namespace Isis
                 s += "MCMD State: PHYSICAL SLOTS\r\n";
                 for (int i = 0; i < outBufs.Length; i++)
                     if (outBufs[i] != null && outBufs[i].inThread != null && outBufs[i].outThread != null)
-                    {
-                        string iN = outBufs[i].inThread.Name, oN = outBufs[i].outThread.Name;
-                        if (iN == null) iN = "<Unnamed user thread>";
-                        if (oN == null) oN = "<Unnamed user thread>";
                         s += "Physical socket[" + i + "]: " + PMCAddr(outBufs[i].PhysIPAddr) + ", refcount=" + outBufs[i].refCount +
-                            "\r\n  in-thread <" + iN + ">\r\n  out-thread <" + oN + ">, backlog " + outBufs[i].outBuf.fullSlots + "\r\n";
-                    }
+                            "\r\n  in-thread <" + (outBufs[i].inThread.Name ?? "<Unnamed user thread>") + ">\r\n  out-thread <" + 
+                            (outBufs[i].outThread.Name ?? "<Unnamed user thread>") + ">, backlog " + outBufs[i].outBuf.fullSlots + "\r\n";
             }
             return s;
         }
 
         internal static void Shutdown()
         {
-            Isis.WriteLine("WARNING: ShutDown called");
-            AbortRemappingTask();
             using (new LockAndElevate(MappingLock))
             {
                 if (theMapping == null)
@@ -22873,45 +23360,45 @@ namespace Isis
                 try
                 {
                     BoundedBuffer bb = outBufs[myOutbufSlot].outBuf;
+                    // Sender side
                     try
                     {
-                        // Sender side
-                        try
+                        while (!IsisSystem.IsisActive)
+                            Thread.Sleep(250);
+                        IPEndPoint remoteEP = new IPEndPoint(physIP, Isis.ISIS_GROUPPORT);
+                        while (IsisSystem.IsisActive)
                         {
-                            while (!IsisSystem.IsisActive)
-                                Thread.Sleep(250);
-                            IPEndPoint remoteEP = new IPEndPoint(physIP, Isis.ISIS_GROUPPORT);
-                            while (IsisSystem.IsisActive)
+                            ++sendCount;
+                            IsisSystem.RTS.ThreadCntrs[27]++;
+                            byte[] buffer = (byte[])bb.get();
+                            if (buffer == null)
                             {
-                                ++sendCount;
-                                IsisSystem.RTS.ThreadCntrs[27]++;
-                                byte[] buffer = (byte[])bb.get();
-                                if (buffer == null)
-                                {
-                                    using (new LockAndElevate(MappingLock))
-                                        outBufs[myOutbufSlot] = null;
-                                    break;
-                                }
-                                ReliableSender.CheckLen(buffer);
-                                long before = Isis.NOW();
-                                int bs = theSocket.SendTo(buffer, remoteEP);
-                                long after = Isis.NOW();
-                                if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0 && (after - before) > 250)
-                                    Isis.WriteLine("WARNING: Sending an IPMC took " + Isis.TimeToString(after - before) + "s");
-                                using (new LockAndElevate(IsisSystem.RTS.Lock))
-                                {
-                                    IsisSystem.RTS.IPMCBsent += bs;
-                                    IsisSystem.RTS.IPMCsent++;
-                                }
+                                using (new LockAndElevate(MappingLock))
+                                    outBufs[myOutbufSlot] = null;
+                                break;
+                            }
+                            ReliableSender.CheckLen(buffer);
+                            long before = Isis.NOW();
+                            int bs = theSocket.SendTo(buffer, remoteEP);
+                            long after = Isis.NOW();
+                            if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0 && (after - before) > 250)
+                                Isis.WriteLine("WARNING: Sending an IPMC took " + Isis.TimeToString(after - before) + "s");
+                            using (new LockAndElevate(IsisSystem.RTS.Lock))
+                            {
+                                IsisSystem.RTS.IPMCBsent += bs;
+                                IsisSystem.RTS.IPMCsent++;
                             }
                         }
-                        catch (BBDisposed) { }
                     }
-                    catch (IsisShutdown) { }
-                    if (theSocket != null)
-                        try { theSocket.Close(); }
-                        catch { }
-                    BoundedBuffer.unregister(bb);
+                    catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                    if (IsisSystem.IsisActive)
+                    {
+                        if (theSocket != null)
+                            try { theSocket.Close(); }
+                            catch { }
+                        BoundedBuffer.unregister(bb);
+                    }
+                    IsisSystem.ThreadTerminationMagic();
                 }
                 catch (IsisException e)
                 {
@@ -22923,6 +23410,7 @@ namespace Isis
                     Isis.WriteLine("Isis MCMD sender thread has thrown an exception " + e.Message);
                     throw new IsisException("Isis MCMD sender thread has thrown an exception " + e.Message);
                 }
+                IsisSystem.ThreadTerminationMagic();
             });
             outBufs[myOutbufSlot].outThread.Name = "ISIS MCMD: send-to " + mcaddr;
             outBufs[myOutbufSlot].outThread.Priority = ThreadPriority.AboveNormal;
@@ -22961,7 +23449,8 @@ namespace Isis
                             }
                             failedReceiveCount = 0;
                         }
-                        catch (SocketException) { break; }
+                        catch (IOException) { len = 0; }
+                        catch (SocketException) { len = 0; }
                         catch { if (failedReceiveCount++ > 10) break; len = 0; }
                         if (len > Isis.ISIS_MAXMSGLEN)
                             Isis.WriteLine("WARNING (c): MAXMSGLEN set to " + Isis.ISIS_MAXMSGLEN + ", but received length=" + len);
@@ -22972,45 +23461,48 @@ namespace Isis
                                 VAddr = (VAddr << 8) | buffer[len - 4 + i];
                             if (len != Isis.ISIS_MAXMSGLEN)
                                 Isis.ArrayResize<byte>(ref buffer, len);
-                            try
+                            if (!AcceptIncoming(myVSocks, buffer, VAddr))
                             {
-                                if (!AcceptIncoming(myVSocks, buffer, VAddr))
+                                Group g;
+                                List<byte[]> ae = null;
+                                if ((g = Group.Lookup(VAddr)) != null && (ae = g.IPMCArrivedEarly) != null)
+                                    ae.Add(buffer);
+                                else
                                 {
-                                    Group g;
-                                    List<byte[]> ae = null;
-                                    if ((g = Group.Lookup(VAddr)) != null && (ae = g.IPMCArrivedEarly) != null)
-                                        ae.Add(buffer);
-                                    else
-                                    {
-                                        if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
-                                            Isis.WriteLine("WARNING: Dr. Multicast filtering a incoming multicast: not a member of VirtIP=" + PMCAddr(VAddr));
-                                        using (new LockAndElevate(IsisSystem.RTS.Lock))
-                                            IsisSystem.RTS.Discarded++;
-                                    }
+                                    if ((IsisSystem.Debug & IsisSystem.DISCARDS) != 0)
+                                        Isis.WriteLine("WARNING: Dr. Multicast filtering a incoming multicast: not a member of VirtIP=" + PMCAddr(VAddr));
+                                    using (new LockAndElevate(IsisSystem.RTS.Lock))
+                                        IsisSystem.RTS.Discarded++;
                                 }
                             }
-                            catch (BBDisposed) { }
                         }
                     }
                 }
-                catch (IsisShutdown) { }
-                if (outBufs[myOutbufSlot] != null && outBufs[myOutbufSlot].outIP != null)
+                catch (IsisShutdown) { IsisSystem.CheckLocksHeld(); }
+                if (IsisSystem.IsisActive)
                 {
-                    if ((IsisSystem.Debug & IsisSystem.MCMD) != 0)
-                        Isis.WriteLine("Physical unsubscribe from IP address " + outBufs[myOutbufSlot].outIP);
-                    if (Isis.InterfaceIds == null)
-                        try
-                        {
-                            theSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DropMembership, new MulticastOption(outBufs[myOutbufSlot].outIP)); // Leave multicast group
-                        }
-                        catch { /* Just in case */ }
-                    else //foreach (int id in Isis.InterfaceIds)
-                        try
-                        {
-                            theSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DropMembership, new MulticastOption(outBufs[myOutbufSlot].outIP, Isis.LastIPv4(Dns.GetHostName()))); // Leave multicast group
-                        }
-                        catch { /* Just in case */ }
+                    if (outBufs[myOutbufSlot] != null && outBufs[myOutbufSlot].outIP != null)
+                    {
+                        // if ((IsisSystem.Debug & IsisSystem.MCMD) != 0)
+                        if (Isis.InterfaceIds == null)
+                            try
+                            {
+                                if (outBufs[myOutbufSlot] != null)
+                                    theSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DropMembership, new MulticastOption(outBufs[myOutbufSlot].outIP)); // Leave multicast group
+                            }
+                            catch (IOException) { /* Just in case */ }
+                            catch (ObjectDisposedException) { }
+                        else //foreach (int id in Isis.InterfaceIds)
+                            try
+                            {
+                                if (outBufs[myOutbufSlot] != null)
+                                    theSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.DropMembership, new MulticastOption(outBufs[myOutbufSlot].outIP, Isis.LastIPv4(Dns.GetHostName()))); // Leave multicast group
+                            }
+                            catch (IOException) { /* Just in case */ }
+                            catch (ObjectDisposedException) { }
+                    }
                 }
+                IsisSystem.ThreadTerminationMagic();
             });
             outBufs[myOutbufSlot].inThread.Name = "ISIS MCMD: receive-on " + mcaddr;
             outBufs[myOutbufSlot].inThread.Priority = ThreadPriority.Highest;
@@ -23347,10 +23839,11 @@ namespace Isis
                 {
                     theSocket.ReceiveBufferSize = (int)Math.Min(64 * Isis.ISIS_MAXMSGLEN, int.MaxValue);
                     theSocket.SendBufferSize = (int)Math.Min(Isis.ISIS_MAXMSGLEN, int.MaxValue);
+                    theSocket.ReceiveTimeout = 1000;
                 }
                 catch (Exception e)
                 {
-                    Isis.WriteLine("MCMD SockSetup unable to set send/recieve buffer size: " + e);
+                    Isis.WriteLine("MCMD SockSetup unable to set send/recieve/ReceiveTimeout: " + e);
                 }
                 return theSocket;
             }
@@ -23661,7 +24154,7 @@ namespace Isis
                 buffer[n + 3 - i] = (byte)(v & 0xFF);
                 v >>= 8;
             }
-            if (!OkToBlock && bb.putWillBlock())
+            if (!OkToBlock && bb.putWillBlock(1))
                 return false;
             bb.put(buffer);
             return true;
@@ -23734,7 +24227,7 @@ namespace Isis
         internal class LockInfoHead
         {
             internal LockInfo First;
-            internal string Tname;
+            internal volatile string Tname;
 
             internal LockInfoHead(string name)
             {
@@ -23805,7 +24298,7 @@ namespace Isis
         public const int LJOINB = 6;
 
         private static Semaphore[][] Semaphores = new Semaphore[NLEVELS][];
-        private static LockObject SemaphoresLock = new LockObject(false, "SemaphoresLock");
+        internal static LockObject SemaphoresLock = new LockObject(false, "SemaphoresLock");
         private static bool[][] isBarrier = new bool[NLEVELS][];
         private static int[][] nWaiters = new int[NLEVELS][];
         private static int[][] Holding = new int[NLEVELS][];
@@ -23858,8 +24351,7 @@ namespace Isis
                                     }
                             break;
                         }
-                if (sl == null)
-                    sl = sublevel.ToString();
+                sl = sl ?? sublevel.ToString();
             }
             else
                 sl = sublevel.ToString();
@@ -23885,25 +24377,6 @@ namespace Isis
             }
         }
 
-        internal static void CheckReleased()
-        {
-            using (new LockAndElevate(SemaphoresLock))
-                for (int id = 0; id < LILEN; id++)
-                    using (new LockAndElevate(LInfoLock))
-                    {
-                        LockInfo li;
-                        if (LInfo[id] == null || (li = LInfo[id].First) == null || LInfo[id].Tname != Thread.CurrentThread.Name)
-                            continue;
-                        if (li.WaitingFor)
-                            li = li.Next;
-                        if (li != null)
-                        {
-                            string tname = (LInfo[id].Tname == null) ? "unnamed thread" : LInfo[id].Tname;
-                            throw new IsisException("Thread[" + Thread.CurrentThread.ManagedThreadId + "] (" + tname + ") is holding " + li + " but shouldn't have any locks.");
-                        }
-                    }
-        }
-
         public static string GetState()
         {
             string s = LockObject.GetState() + "THREAD ILOCK STATE:\r\n";
@@ -23927,10 +24400,7 @@ namespace Isis
                     {
                         if (LInfo[id] == null || (li = LInfo[id].First) == null)
                             continue;
-                        string name = LInfo[id].Tname;
-                        if (name == null)
-                            name = "Unnamed user-created thread";
-                        s += "  Thread[" + id + "] (" + name + ")";
+                        s += "  Thread[" + id + "] (" + (LInfo[id].Tname ?? "Unnamed user-created thread") + ")";
                         if (li.WaitingFor)
                         {
                             s += ": Waiting for " + li;
@@ -24071,7 +24541,6 @@ namespace Isis
             }
         }
 
-
         private void SInit(int level, int lockId, int init)
         {
             if (level < 0 || level > NLEVELS) throw new ArgumentOutOfRangeException("ILock");
@@ -24114,16 +24583,19 @@ namespace Isis
         internal static ILock IlockResetAndRef(int level, int lockId, bool grabLock, int init)
         {
             using (new LockAndElevate(SemaphoresLock))
+            {
+                if (level >= Semaphores.Length || lockId == -1)
+                    throw new IsisException("IlockResetAndRef(" + level + ", " + lockId + ", " + grabLock + ", " + init + "): len too large or id<0!");
                 if (Semaphores[level] != null && Semaphores[level].Length > lockId)
                     Semaphores[level][lockId] = null;
+            }
             return new ILock(level, lockId, grabLock, init);
         }
 
         internal static int NILocks(int level)
         {
-            using (new LockAndElevate(SemaphoresLock))
-                if (Semaphores[level] != null)
-                    return Semaphores[level].Length;
+            if (Semaphores[level] != null)
+                return Semaphores[level].Length;
             return 32;
         }
 
@@ -24150,19 +24622,25 @@ namespace Isis
                 li.Next = LInfo[theIndex].First;
                 LInfo[theIndex].First = li;
             }
+            Semaphore theSema;
             using (new LockAndElevate(SemaphoresLock))
+            {
+                theSema = Semaphores[level][lockId];
                 ++nWaiters[level][lockId];
+            }
             if ((IsisSystem.Debug & IsisSystem.LOCKSTATE) != 0)
                 Isis.WriteLine("BBDecCntr acquiring semaphore[" + level + "][" + lockId + "]");
             try
             {
-                Semaphores[level][lockId].WaitOne();
+                if (theSema != null)
+                    theSema.WaitOne();
             }
             finally
             {
                 if (IsisSystem.IsisActive == false && !IsisSystem.shuttingDown) throw new IsisShutdown("Isis Inactive");
                 using (new LockAndElevate(SemaphoresLock))
-                    --nWaiters[level][lockId];
+                    if (Semaphores[level][lockId] == theSema)
+                        --nWaiters[level][lockId];
                 using (new LockAndElevate(LInfoLock))
                     LInfo[theIndex].First = li.Next;
             }
@@ -24275,8 +24753,7 @@ namespace Isis
             int rval = 0;
             using (new LockAndElevate(LockIdsLock))
             {
-                if (LockIds[level] == null)
-                    LockIds[level] = new Dictionary<int, IdAndCtr>(100);
+                LockIds[level] = LockIds[level] ?? new Dictionary<int, IdAndCtr>(100);
                 IdAndCtr idc;
                 if (LockIds[level].TryGetValue(hashcode, out idc))
                 {
@@ -24526,6 +25003,7 @@ namespace Isis
         }
     }
 
+
     // Bounded circular buffer.  By convention, a put(null) will cause any reader thread
     // to terminate; we use this when disposing of these buffers.  The code can handle
     // multiple readers but in fact Isis2 only has a single reader thread at a time in the
@@ -24535,7 +25013,7 @@ namespace Isis
         internal static List<BoundedBuffer> BBList = new List<BoundedBuffer>();
         internal static LockObject BBListLock = new LockObject(false, "BBListLock");
         internal string name;
-        internal bool disposing = false;
+        volatile internal bool lockedAgainstPut = false;
         internal int size;
         internal int pNext;
         internal int gNext;
@@ -24545,11 +25023,16 @@ namespace Isis
         volatile internal int fullSlots;
         internal int delayedNotifyCnt;
         internal object[] theBuffer;
-        internal LockObject Lock = new LockObject("BoundedBuffer.Lock");
+        internal LockObject Lock; 
         internal ILock puttingLock;
         internal ILock gettingLock;
 
         internal BoundedBuffer(string s, int sz, int lockLevel, int plockId, int glockId)
+            : this(s, sz, lockLevel, plockId, glockId, Thread.CurrentThread.Priority)
+        {
+        }
+
+        internal BoundedBuffer(string s, int sz, int lockLevel, int plockId, int glockId, ThreadPriority pri)
         {
             using (new LockAndElevate(BBListLock))
             {
@@ -24572,12 +25055,15 @@ namespace Isis
                 myPlockId = plockId;
                 myGlockId = glockId;
                 name = s;
-                size = sz;
+                // Leave room for one null, to deal with closing the buffer
+                size = sz + 1;
                 theBuffer = new object[size];
+                // When putting a null, won't wait
                 puttingLock = ILock.IlockResetAndRef(lockLevel, plockId, false, size);
                 gettingLock = ILock.IlockResetAndRef(lockLevel, glockId, false, 0);
                 BBList.Add(this);
             }
+            Lock = new LockObject(name + "/BoundedBuffer.Lock", pri);
         }
 
         internal static void unregister(BoundedBuffer bb)
@@ -24601,8 +25087,7 @@ namespace Isis
                 foreach (BoundedBuffer bb in BBList)
                     using (new LockAndElevate(bb.Lock))
                     {
-                        string isFull = (bb.size == bb.fullSlots) ? " ** FULL **" : "";
-                        bs += "  <" + bb.name + ">  size=" + bb.size + " (" + bb.fullSlots + " full)" + isFull +
+                        bs += "  <" + bb.name + ">  size=" + (bb.size-1) + " (" + (bb.fullSlots<bb.size? bb.fullSlots.ToString(): "all") + " full)" + (bb.lockedAgainstPut? " locked": "") +
                             ", GetLock=" + ILock.PLock(bb.gettingLock) + ", PutLock=" + ILock.PLock(bb.puttingLock);
                         if (bb.delayedNotifyCnt > 0)
                             bs += ", Delayed Notify Count=" + bb.delayedNotifyCnt;
@@ -24611,10 +25096,10 @@ namespace Isis
             return bs;
         }
 
-        internal bool putWillBlock()
+        internal bool putWillBlock(int howMany)
         {
             using (new LockAndElevate(Lock))
-                return size == fullSlots;
+                return size < (fullSlots+howMany);
         }
 
         internal static int FullSlots(BoundedBuffer bb)
@@ -24627,80 +25112,71 @@ namespace Isis
 
         internal void put(object o)
         {
-            put(o, (o != null));
+            put(o, false);
         }
 
         internal void put(object o, bool nonBlocking)
         {
-            try
-            {
-                using (new LockAndElevate(Lock))
-                    if (nonBlocking && fullSlots == size)
-                    {
-                        if (o == null)
-                        {
-                            // Special for disposing of a BB that turns out to be completely full; a very unlikely
-                            // case.  No place to put a null object, so just null the whole thing, which of course
-                            // means any contents won't be "delivered" but hopefully will trigger quick shutdown of 
-                            // threads reading from it
-                            for (int i = 0; i < size; i++)
-                                theBuffer[i] = null;
-                        }
-                        return;
-                    }
+            using (new LockAndElevate(Lock))
+                if (nonBlocking && fullSlots == size)
+                    return;
+            if (o != null)
                 puttingLock.BBDecCntr();
-                using (new LockAndElevate(Lock))
+            using (new LockAndElevate(Lock))
+            {
+                if (lockedAgainstPut)
                 {
-                    if (disposing)
-                        throw new BBDisposed("BoundedBuffer has been disposed");
-                    theBuffer[(pNext++) % size] = o;
-                    if (++fullSlots > size)
-                        throw new IsisException("BB:put fullslots overflow");
+                    puttingLock.BBIncCntr();
+                    return;
                 }
-                gettingLock.BBIncCntr();
+                theBuffer[(pNext++) % size] = o;
+                if (++fullSlots > size && o != null && !lockedAgainstPut)
+                    Isis.WriteLine("WARNING... BB:put<" + name + ">: fullslots overflow");
+                if (o == null)
+                {
+                    lockedAgainstPut = true;
+                    puttingLock.BBIncCntr();
+                }
             }
-            catch (BBDisposed) { }
+            gettingLock.BBIncCntr();
         }
 
         internal object get()
         {
-            try
+            object o;
+            bool delayedNotify = false;
+            int delayednotifies = 0;
+            gettingLock.BBDecCntr();
+            using (new LockAndElevate(Lock))
             {
-                object o;
-                bool delayedNotify = false;
-                int delayednotifies = 0;
-                gettingLock.BBDecCntr();
-                using (new LockAndElevate(Lock))
+                int idx = (gNext++) % size;
+                o = theBuffer[idx];
+                if (fullSlots <= 0)
                 {
-                    if (disposing && fullSlots == 0)
-                    {
-                        gettingLock.BBIncCntr();
-                        throw new BBDisposed("BoundedBuffer has been disposed");
-                    }
-                    int idx = (gNext++) % size;
-                    o = theBuffer[idx];
-                    if (--fullSlots < 0)
-                        throw new IsisException("[" + name + " (level=" + myLockLevel + "; lockids=" + myPlockId + ":" + myGlockId + ")] BB:get negative fullslots");
-                    theBuffer[idx] = null;
-                    if (fullSlots > (size * 3) / 4)
-                    {
-                        delayedNotify = true;
-                        ++delayedNotifyCnt;
-                    }
-                    else
-                    {
-                        delayednotifies = delayedNotifyCnt + 1;
-                        delayedNotifyCnt = 0;
-                    }
+                    if (!IsisSystem.IsisActive && IsisSystem.IsisWasActive)
+                        return null;
+                    if (!lockedAgainstPut)
+                        Isis.WriteLine("WARNING... BB:get<" + name + ">: fullslots underflow with gettinglock=" + gettingLock.lockId);
+                    for (int i = 0; i < 10; i++)
+                        Isis.WriteLine("**********************************************************************************************************************");
+                    return null;
                 }
-                while (!delayedNotify && --delayednotifies >= 0)
-                    puttingLock.BBIncCntr();
-                return o;
+                --fullSlots;
+                theBuffer[idx] = null;
+                if (fullSlots > (size * 3) / 4 && o != null && myLockLevel != ILock.LLTCP)
+                {
+                    delayedNotify = true;
+                    ++delayedNotifyCnt;
+                }
+                else
+                {
+                    delayednotifies = delayedNotifyCnt + 1;
+                    delayedNotifyCnt = 0;
+                }
             }
-            catch (BBDisposed)
-            {
-                return null;
-            }
+            while (!delayedNotify && !lockedAgainstPut && --delayednotifies >= 0)
+                puttingLock.BBIncCntr();
+            return o;
         }
     }
 
@@ -24787,7 +25263,7 @@ namespace Isis
                     if (lo.lockHolder != null)
                         lockedby = "locked by Thread[" + lo.lockHolder.Name + "] for " + Isis.TimeToString(Isis.NOW() - lo.LockedAt) + (wantedBy.Length > 0 ? ("; Wanted by " + wantedBy) : "");
                     foreach (Thread t in lo.WantsMe)
-                        wantedBy += "Thread[" + t.ManagedThreadId + "] (" + (t.Name == null ? "no name" : t.Name) + " ";
+                        wantedBy += "Thread[" + t.ManagedThreadId + "] (" + (t.Name ?? "no name") + " ";
                     s += "   <" + lo.Name + ">: UseCnt=" + lo.UseCount + "; " + lockedby + "\r\n";
                     if (includeCallStack)
                         s += "    .... call-stack that acquired lock = " + lo.lockedBy + "\r\n";
@@ -24832,6 +25308,8 @@ namespace Isis
 
         internal LockAndElevate(LockObject Lock, bool inhibitWARNINGs)
         {
+            if (disabled)
+                return;
 #if TRACKLOCKINFO
             string lb = LockObject.threadInfo();
 #endif // TRACKLOCKINFO
@@ -24863,15 +25341,14 @@ namespace Isis
 #endif // TRACKLOCKINFO
             bool lockTaken = false;
             long lcount = 0;
-            int tout = 2000;
-#if MONODROID_MODE  //VN - added more time for the timeout in Android.
-            tout = 20000;
-#endif
-            for (int time = 0; !lockTaken && time < 5; time++)
+            int tout = 2000, time;
+            for (time = 0; !lockTaken && time < 5; time++)
             {
                 System.Threading.Monitor.TryEnter(LockedObject, tout, ref lockTaken);
                 if (!lockTaken)
                 {
+                    if (!IsisSystem.IsisActive && IsisSystem.IsisWasActive)
+                        throw new IsisShutdown("Isis is shutting down, LockAndElevate timeout");
                     string name = "";
                     lock (Lock.Info)
                     {
@@ -24893,23 +25370,24 @@ namespace Isis
                             name = " (lock held by " + Lock.lockHolder.Name + ")";
                     }
                     if ((IsisSystem.Debug & IsisSystem.WARNIFSLOW) != 0)
-                        Isis.WriteLine("WARNING: " + LockObject.threadInfo() + " has waited for " + Lock.Name + " for " + ((time + 1) * tout/1000) + " secs" + name +
+                        Isis.WriteLine("WARNING: " + LockObject.threadInfo() + " has waited for " + Lock.Name + " for " + ((time + 1) * tout / 1000) + " secs" + name +
                             ((time <= 1) ? "" : "; (called from " + Isis.ExtractStackTrace() + ")"));
                 }
             }
             if (!lockTaken)
             {
+                Isis.WriteLine("Unable to acquire " + Lock.Name + " in " + LockObject.GetState());
                 string name = "";
                 lock (Lock.Info)
                 {
                     if (!Lock.isLocked)
                         name = " ** not tracking lockstate (recompile with TRACKLOCKINFO to enable tracking) ** Lock usecnt = " + Lock.UseCount + " ** ";
                     else if (Lock.lockHolder != null && Lock.lockHolder.Name != null)
-                        name = " (lock held by " + Lock.lockHolder.Name + "; right now he is doing " + Isis.SuspendAndExtractStackTrace(Lock.lockHolder) + ")";
+                        name = " (lock held by " + Lock.lockHolder.Name + ")";
                 }
-                new Thread(delegate() { Isis.WriteLine("Lock<" + name + "> request failed in state: " + IsisSystem.GetState()); }).Start();
+                new Thread(delegate() { Isis.WriteLine("Lock<" + name + "> request failed in state: " + LockObject.GetState()); }).Start();
                 throw new IsisException("[" + Isis.TimeToString(Isis.NOW()) + "]: Isis was unable to acquire " + Lock.Name +
-                    " after waiting 10 secs" + name + ";  (called from " + Isis.ExtractStackTrace() + ")\r\nFailed in lock-state " + LockObject.GetState(true));
+                    " after waiting " + ((time + 1) * tout / 1000) + " secs" + name + ";  (called from " + Isis.ExtractStackTrace() + ")\r\nFailed in lock-state " + LockObject.GetState(true));
             }
 #if TRACKLOCKINFO
             lock (Lock.Info)
@@ -24938,6 +25416,8 @@ namespace Isis
 
         internal static void noteAssociation(int id, LockObject lo)
         {
+            if (!IsisSystem.IsisActive && IsisSystem.IsisWasActive)
+                return;
 #if TRACKLOCKINGORDER
             if (!lo.TrackOrder || (id < 0 && id >= LockList.Length))
                 return;
@@ -24964,7 +25444,7 @@ namespace Isis
                             fnd = true;
                             foreach (LockingDependencyOrder ldo in otherLo.DependencyOrder)
                                 if (ldo.otherLock == lo)
-                                    Isis.WriteLine("WARNING: sometimes  <" + lo.Name + "> is locked first, then <" + otherLo.Name + ">, but locked them in swapped order\r\n" +
+                                    Isis.WriteLine("WARNING: sometimes  <" + lo.Name + "> is locked first, then <" + otherLo.Name + ">, but locked <" + otherLo.Name + "> first and then <" + lo.Name + ">!\r\n" +
                                         "      This thread called at [" + Isis.ExtractStackTrace() + "]\r\n    Saw other dependency at [ " + ldo.stack + "]");
                         }
                     if (!fnd)
@@ -24997,7 +25477,7 @@ namespace Isis
                 if (!disposed)
                 {
                     disposed = true;
-                    if (lockedCnt > 0)
+                    if (lockedCnt > 0 || (IsisSystem.IsisAlreadyRan && !IsisSystem.IsisActive))
                     {
                         --lockedCnt;
                         return;
@@ -25034,12 +25514,10 @@ namespace Isis
                                             }
                                         }
                                     }
-                                    string name = "unnamed thread";
-                                    if (LockedObject.lockHolder == null)
+                                    Thread ht = LockedObject.lockHolder;
+                                    if (ht == null)
                                         Isis.WriteLine("WARNING: Dispose for Lock " + LockedObject.Name + " but lockHolder=null!");
-                                    if (LockedObject.lockHolder.Name != null)
-                                        name = LockedObject.lockHolder.Name;
-                                    LockedObject.lastlockedInfo = "From " + Isis.TimeToString(LockedObject.LockedAt) + " to " + Isis.TimeToString(Isis.NOW()) + " was locked by " + name;
+                                    LockedObject.lastlockedInfo = "From " + Isis.TimeToString(LockedObject.LockedAt) + " to " + Isis.TimeToString(Isis.NOW()) + " was locked by " + (ht.Name ?? "unnamed thread");
                                     LockedObject.lockedBy = "not locked";
                                     LockedObject.lockHolder = null;
                                     LockedObject.isLocked = false;
@@ -25055,14 +25533,14 @@ namespace Isis
                                     string why = e.Message;
                                     throw new IsisException("System.Threading.Monitor.Exit threw " + why + " on LockedObject " + LockedObject.Name);
                                 }
-                            else
+                            else if(IsisSystem.IsisActive)
                                 throw new IsisException("Dispose: called for " + LockedObject.Name + " from a thread other than the one that acquired the lock (should be " + tname + ")");
                         }
                         else if (LockedObject != null && LockedObject.Info != null)
                             throw new IsisException("Dispose: surprised that " + LockedObject.Name + " had a null .lockedBy field!");
                         else if (LockedObject != null && LockedObject.lockedBy != null)
                             throw new IsisException("Dispose: surprised that " + LockedObject.Name + " had a null .Info field!");
-                        else
+                        else if (lockedCnt > 0)
                             throw new IsisException("Dispose: surprised that LockedObject=null");
                     }
                     LockedObject = null;
