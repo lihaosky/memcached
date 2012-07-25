@@ -133,7 +133,7 @@ enum transmit_result {
 
 /* Callback for ISIS bufferevent event */
 static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
-	conn *c = (conn*)prt;
+	conn *c = (conn*)ptr;
 	
 	if (events & BEV_EVENT_CONNECTED) {
 		printf("Connected to ISIS!\n");
