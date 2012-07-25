@@ -138,6 +138,8 @@ static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
 	} else if (events & BEV_EVENT_ERROR) {
 		printf("Error connecting to local ISIS service!\n");
 		bufferevent_free(bev);
+	} else if (events & (BEV_EVENT_TIMEOUT|BEV_EVENT_READING)) {
+		printf("Read timeout occur\n");
 	}
 }
 
@@ -1011,6 +1013,7 @@ static void complete_nread_ascii(conn *c) {
 	int cmd_size = 0;
 	int val;
 	int i;
+	struct timeval tv;
 	
     pthread_mutex_lock(&c->thread->stats.mutex);
     c->thread->stats.slab_stats[it->slabs_clsid].set_cmds++;
@@ -1179,6 +1182,9 @@ static void complete_nread_ascii(conn *c) {
 			}
 			
 			if (ret = STORED) {
+				tv.tv_sec = 0;
+				tv.tv_usec = 1000;
+				
 				for (i = 0; i < shard_size - 1; i++) {
 					/* Not created, create it first */
 					if (c->member_bev[i] == NULL) {
@@ -1201,6 +1207,7 @@ static void complete_nread_ascii(conn *c) {
 							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
+							bufferevent_set_timeout(c->member_bev[i], &tv, NULL);
 							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
 						}
 					} else {
