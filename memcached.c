@@ -1207,7 +1207,7 @@ static void complete_nread_ascii(conn *c) {
 							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "insert\r\n");
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 							evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
-							bufferevent_set_timeout(c->member_bev[i], &tv, NULL);
+							bufferevent_set_timeouts(c->member_bev[i], &tv, NULL);
 							//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
 						}
 					} else {
