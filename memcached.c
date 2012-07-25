@@ -385,6 +385,7 @@ static void settings_init(void) {
 	settings.isis_port = -1;            /* port number -1 means not use local isis */
 	settings.use_isis = 0;
 	settings.use_local_isis = false;
+	settings.use_tcp = false;
 }
 
 /*
