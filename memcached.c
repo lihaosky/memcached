@@ -133,6 +133,8 @@ enum transmit_result {
 
 /* Callback for ISIS bufferevent event */
 static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
+	conn *c = (conn*)prt;
+	
 	if (events & BEV_EVENT_CONNECTED) {
 		printf("Connected to ISIS!\n");
 	} else if (events & BEV_EVENT_ERROR) {
@@ -140,6 +142,16 @@ static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
 		bufferevent_free(bev);
 	} else if (events & (BEV_EVENT_TIMEOUT|BEV_EVENT_READING)) {
 		printf("Read timeout occur\n");
+		pthread_mutex_lock(&c->lock);
+		c->reply_num++;
+		pthread_mutex_unlock(&c->lock);
+			
+		if (c->reply_num >= shard_size - 1) {
+			out_string(c, "STORED");
+			drive_machine(c);
+			c->reply_num = 0;
+		}
+		
 		bufferevent_set_timeouts(bev, NULL, NULL);
 		bufferevent_enable(bev, EV_READ|EV_WRITE);
 	}
@@ -207,7 +219,7 @@ static void member_readcb(struct bufferevent *bev, void *ptr) {
 			c->reply_num++;
 			pthread_mutex_unlock(&c->lock);
 			
-			if (c->reply_num == shard_size - 1) {
+			if (c->reply_num >= shard_size - 1) {
 				out_string(c, "STORED");
 				drive_machine(c);
 				c->reply_num = 0;
