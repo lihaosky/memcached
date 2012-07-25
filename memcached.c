@@ -140,6 +140,8 @@ static void isis_eventcb(struct bufferevent *bev, short events, void *ptr) {
 		bufferevent_free(bev);
 	} else if (events & (BEV_EVENT_TIMEOUT|BEV_EVENT_READING)) {
 		printf("Read timeout occur\n");
+		bufferevent_set_timeouts(bev, NULL, NULL);
+		bufferevent_enable(bev, EV_READ|EV_WRITE);
 	}
 }
 
@@ -1220,6 +1222,7 @@ static void complete_nread_ascii(conn *c) {
 						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s %s 4 %d %d\r\n", command, ITEM_key(it), c->exptime, it->nbytes - 2);
 						evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "%s", ITEM_data(it));
 						//evbuffer_add_printf(bufferevent_get_output(c->member_bev[i]), "\r\n");
+						bufferevent_set_timeouts(c->member_bev[i], &tv, NULL);
 					}
 				}
 			} else {
