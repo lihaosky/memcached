@@ -5550,7 +5550,7 @@ int main (int argc, char **argv) {
     }
 
 	/* Use local ISIS library, not service */
-	if (nnum != -1 && ssize != -1 && mrank != -1 && !settings.use_tcp) {
+	if (nnum != -1 && ssize != -1 && mrank != -1 && !settings.use_tcp && !settings.use_isis) {
 		settings.use_local_isis = true;
 	}
 	
