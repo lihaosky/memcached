@@ -615,8 +615,8 @@ namespace Isis
         internal static int MapperEpochId;
 
 #if __MonoCS__
-        internal static string ISIS_NETMASK = "255.255.0.0";
-        internal static string ISIS_SUBNET = "10.10.0.0";
+        internal static string ISIS_NETMASK = "255.255.255.0";
+        internal static string ISIS_SUBNET = "192.168.14.0";
 #else // __MonoCS__
         internal static string ISIS_NETMASK = "";
         internal static string ISIS_SUBNET = "";
