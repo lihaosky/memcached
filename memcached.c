@@ -396,10 +396,10 @@ static void settings_init(void) {
     settings.controller_ip = NULL;      /* no remote controller by default */
     settings.controller_port = 0;
     settings.report_interval = 1;       /* 1 sec by default */
-	settings.isis_port = -1;            /* port number -1 means not use local isis */
-	settings.use_isis = 0;
-	settings.use_local_isis = false;
-	settings.use_tcp = false;
+    settings.isis_port = -1;            /* port number -1 means not use local isis */
+    settings.use_isis = 0;
+    settings.use_local_isis = false;
+    settings.use_tcp = false;
 }
 
 /*
@@ -5293,11 +5293,11 @@ int main (int argc, char **argv) {
           "x:"  /* Remote controller IPv4 address */
           "y:"  /* Remote controller port */
           "z:"  /* Interval between reports to controller */
-		  "q:"  /* Local Isis port */
-		  "N:"  /* Node number */
-		  "H:"  /* Shard size */
-		  "K:"  /* My rank */
-		  "T"  /* Use TCP to do replication */
+          "q:"  /* Local Isis port */
+          "N:"  /* Node number */
+          "H:"  /* Shard size */
+          "K:"  /* My rank */
+          "T"  /* Use TCP to do replication */
         ))) {
         switch (c) {
         case 'a':
@@ -5336,11 +5336,11 @@ int main (int argc, char **argv) {
             break;
         case 'v':
             settings.verbose++;
-			is_verbose = true;
+            is_verbose = true;
             break;
-		case 'T':
-			settings.use_tcp = true;
-			break;
+        case 'T':
+            settings.use_tcp = true;
+            break;
         case 'l':
             if (settings.inter != NULL) {
                 size_t len = strlen(settings.inter) + strlen(optarg) + 2;
@@ -5549,10 +5549,10 @@ int main (int argc, char **argv) {
         }
     }
 
-	/* Use local ISIS library, not service */
-	if (nnum != -1 && ssize != -1 && mrank != -1 && !settings.use_tcp && !settings.use_isis) {
-		settings.use_local_isis = true;
-	}
+    /* Use local ISIS library, not service */
+    if (nnum != -1 && ssize != -1 && mrank != -1 && !settings.use_tcp && !settings.use_isis) {
+      settings.use_local_isis = true;
+    }
 	
     /*
      * Use one workerthread to serve each UDP port if the user specified
